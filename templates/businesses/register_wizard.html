@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}5-Step Business Registration Wizard (₹0 Joining Cost) | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem; max-width:900px;">
+    <div style="background:var(--surface-card); padding:2.2rem; border-radius:22px; border:1px solid var(--border-soft); box-shadow:var(--shadow-hover);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">₹0 JOINING COST • MULTI-STEP ONBOARDING WIZARD</span>
+                <h1 style="font-family:var(--font-display); font-size:2rem; margin-top:0.2rem;">Register Your Food Business</h1>
+            </div>
+            <span class="tt-badge badge-verified" style="font-size:0.82rem; padding:0.4rem 0.9rem;">₹0 Registration Fee</span>
+        </div>
+
+        <!-- 5-Step Progress Indicator (Section 3) -->
+        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.5rem; margin-bottom:1.75rem;">
+            <button type="button" class="tt-filter-chip active js-wiz-tab" onclick="showWizardStep(1)">1. Business Info</button>
+            <button type="button" class="tt-filter-chip js-wiz-tab" onclick="showWizardStep(2)">2. Location</button>
+            <button type="button" class="tt-filter-chip js-wiz-tab" onclick="showWizardStep(3)">3. Details</button>
+            <button type="button" class="tt-filter-chip js-wiz-tab" onclick="showWizardStep(4)">4. Store Profile</button>
+            <button type="button" class="tt-filter-chip js-wiz-tab" onclick="showWizardStep(5)">5. Verification</button>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- STEP 1: Business Information & Regional Discovery (Section 3 & 93) -->
+            <div id="wiz-step-1" class="js-wiz-panel">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:1rem;">Step 1: Business Information & Region</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Business / Store Name *</label>
+                        <input type="text" name="business_name" placeholder="e.g. Coastal Kitchen or Udupi Tiffin House" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Owner Full Name *</label>
+                        <input type="text" name="owner_name" value="{{ user.get_full_name }}" placeholder="e.g. Rahul Shetty" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Business Email *</label>
+                        <input type="email" name="email" value="{{ user.email }}" placeholder="store@example.com" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Contact Phone *</label>
+                        <input type="text" name="phone" placeholder="+91 9845012345" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Business Type</label>
+                        <select name="business_type" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                            {% for code, lbl in business_types %}
+                            <option value="{{ code }}">{{ lbl }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Select Business Region (Section 93)</label>
+                        <select name="region_slug" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                            {% for reg in regions %}
+                            <option value="{{ reg.slug }}">{{ reg.emoji_flag }} {{ reg.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <button type="button" class="btn-add-food" style="padding:0.65rem 1.4rem;" onclick="showWizardStep(2)">Next: Business Location →</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Business Location + Map Coordinate Picker -->
+            <div id="wiz-step-2" class="js-wiz-panel" style="display:none;">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:1rem;">Step 2: Business Location & Map Pin</h3>
+                <div style="margin-bottom:0.9rem;">
+                    <label style="font-size:0.8rem; font-weight:700;">Street Address *</label>
+                    <input type="text" name="address" value="14 Market Road" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Area</label>
+                        <input type="text" name="area" value="Hampankatta" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">City</label>
+                        <input type="text" name="city" value="Mangaluru" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">State</label>
+                        <input type="text" name="state" value="Karnataka" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Pincode</label>
+                        <input type="text" name="pincode" value="575001" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Latitude</label>
+                        <input type="text" id="wiz-lat" name="latitude" value="12.9141" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Longitude</label>
+                        <input type="text" id="wiz-lng" name="longitude" value="74.8560" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                    </div>
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                        <span style="font-size:0.8rem; font-weight:700;">📍 Click on Map to Pin Your Exact Kitchen Location</span>
+                        <span style="font-size:0.72rem; font-weight:800; color:#15803D; background:#DCFCE7; border:1px solid #86EFAC; padding:0.2rem 0.6rem; border-radius:999px;">🔑 Maps API Key Active</span>
+                    </div>
+                    <div id="tt-wizard-pin-map" style="height:290px; width:100%; border-radius:12px; border:1px solid var(--border-soft); overflow:hidden;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <button type="button" class="tt-filter-chip" onclick="showWizardStep(1)">← Back</button>
+                    <button type="button" class="btn-add-food" style="padding:0.65rem 1.4rem;" onclick="showWizardStep(3)">Next: Business Details →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Business Details -->
+            <div id="wiz-step-3" class="js-wiz-panel" style="display:none;">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:1rem;">Step 3: Cuisine, Hours & Dietary Type</h3>
+                <div style="margin-bottom:0.9rem;">
+                    <label style="font-size:0.8rem; font-weight:700;">Cuisines Offered</label>
+                    <input type="text" name="cuisine" value="South Indian • Coastal • Fast Food" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.75rem; margin-bottom:1.25rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Opening Time</label>
+                        <input type="time" name="opening_time" value="08:00" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Closing Time</label>
+                        <input type="time" name="closing_time" value="22:30" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Dietary Type</label>
+                        <select name="dietary_type" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                            <option value="BOTH">Veg & Non-Veg</option>
+                            <option value="VEG">Pure Vegetarian</option>
+                            <option value="NON_VEG">Non-Vegetarian</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Delivery Fee (₹)</label>
+                        <input type="number" name="delivery_fee" value="20" min="0" max="60" style="width:100%; padding:0.6rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <button type="button" class="tt-filter-chip" onclick="showWizardStep(2)">← Back</button>
+                    <button type="button" class="btn-add-food" style="padding:0.65rem 1.4rem;" onclick="showWizardStep(4)">Next: Store Profile →</button>
+                </div>
+            </div>
+
+            <!-- STEP 4: Business Profile -->
+            <div id="wiz-step-4" class="js-wiz-panel" style="display:none;">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:1rem;">Step 4: Business Logo, Cover & Story</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Upload Business Logo (or paste image URL)</label>
+                        <input type="file" name="logo_image" accept="image/*" style="width:100%; margin-top:4px; margin-bottom:6px;">
+                        <input type="url" name="logo_url" placeholder="https://..." style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; font-weight:700;">Upload Cover Image (or paste image URL)</label>
+                        <input type="file" name="cover_image" accept="image/*" style="width:100%; margin-top:4px; margin-bottom:6px;">
+                        <input type="url" name="cover_image_url" placeholder="https://..." style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.8rem; font-weight:700;">Store Description & Specialties</label>
+                    <textarea name="description" rows="3" placeholder="Tell customers about your kitchen's specialties, fresh ingredients, and heritage..." style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <button type="button" class="tt-filter-chip" onclick="showWizardStep(3)">← Back</button>
+                    <button type="button" class="btn-add-food" style="padding:0.65rem 1.4rem;" onclick="showWizardStep(5)">Next: Verification & Submit →</button>
+                </div>
+            </div>
+
+            <!-- STEP 5: Verification & Submission -->
+            <div id="wiz-step-5" class="js-wiz-panel" style="display:none;">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:0.75rem;">Step 5: Verification & Free Joining Confirmation</h3>
+                <div style="background:var(--region-bg); padding:1.25rem; border-radius:14px; border:1px solid var(--border-soft); margin-bottom:1.1rem;">
+                    <div style="font-weight:800; color:var(--region-primary); margin-bottom:0.35rem;">✓ ₹0 Joining Cost Applied</div>
+                    <p style="font-size:0.84rem; color:var(--text-muted);">
+                        After submitting, your store status will be set to <strong>🟡 Pending Review</strong>. Once approved by the Tasty Tap Admin, your digital storefront goes live immediately!
+                    </p>
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <label style="font-size:0.8rem; font-weight:700;">Optional Trade / Registration Reference (Configurable per business type)</label>
+                    <input type="text" name="optional_license_ref" placeholder="Optional reference ID" style="width:100%; padding:0.65rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;">
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button type="button" class="tt-filter-chip" onclick="showWizardStep(4)">← Back</button>
+                    <button type="submit" class="btn-qcart-order" style="width:auto; padding:0.8rem 2rem;">Submit Application (₹0 Joining Cost) 🚀</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let wizardMap = null;
+let wizardPinMarker = null;
+
+function initWizardPinMap() {
+    if (wizardMap || typeof L === 'undefined') return;
+    const mapEl = document.getElementById('tt-wizard-pin-map');
+    if (!mapEl) return;
+
+    const latInput = document.getElementById('wiz-lat');
+    const lngInput = document.getElementById('wiz-lng');
+    const initLat = parseFloat(latInput?.value) || 12.9141;
+    const initLng = parseFloat(lngInput?.value) || 74.8560;
+
+    wizardMap = L.map('tt-wizard-pin-map').setView([initLat, initLng], 13);
+    if (typeof attachTastyTapMapLayers === 'function') {
+        attachTastyTapMapLayers(wizardMap);
+    } else {
+        L.tileLayer('/api/map-tiles/{z}/{x}/{y}.png?style=street', {
+            maxZoom: 19,
+            attribution: '&copy; Tasty Tap Maps Engine'
+        }).addTo(wizardMap);
+    }
+
+    const pinIcon = L.divIcon({
+        className: 'tt-custom-map-pin',
+        html: `<div class="tt-map-pin-pill"><span>📍</span><span>Your Store Location</span></div>`,
+        iconSize: null
+    });
+
+    wizardPinMarker = L.marker([initLat, initLng], { icon: pinIcon, draggable: true }).addTo(wizardMap);
+
+    wizardMap.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        wizardPinMarker.setLatLng([lat, lng]);
+        if (latInput) latInput.value = lat.toFixed(4);
+        if (lngInput) lngInput.value = lng.toFixed(4);
+    });
+
+    wizardPinMarker.on('dragend', () => {
+        const pos = wizardPinMarker.getLatLng();
+        if (latInput) latInput.value = pos.lat.toFixed(4);
+        if (lngInput) lngInput.value = pos.lng.toFixed(4);
+    });
+}
+
+function showWizardStep(stepNum) {
+    document.querySelectorAll('.js-wiz-panel').forEach((p, idx) => {
+        p.style.display = (idx + 1 === stepNum) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.js-wiz-tab').forEach((t, idx) => {
+        t.classList.toggle('active', idx + 1 === stepNum);
+    });
+    if (stepNum === 2) {
+        setTimeout(() => {
+            initWizardPinMap();
+            if (wizardMap) wizardMap.invalidateSize();
+        }, 60);
+    }
+}
+</script>
+{% endblock %}

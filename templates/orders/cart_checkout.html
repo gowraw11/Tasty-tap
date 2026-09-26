@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block title %}Smart Cart & Checkout | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem;">
+    <div class="tt-section-header">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">MULTI-VENDOR SMART CART</span>
+            <h1 class="tt-section-title">Your Cart & Checkout 🛒</h1>
+            {% if cart.business %}
+            <p class="tt-section-sub">Ordering from <strong>{{ cart.business.name }}</strong> ({{ cart.business.area }}, {{ cart.business.city }}) • Estimated Delivery: {{ cart.business.estimated_delivery_time }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not items %}
+    <div style="background:var(--surface-card); padding:3rem; border-radius:20px; border:1px solid var(--border-soft); text-align:center;">
+        <div style="font-size:3rem; margin-bottom:0.75rem;">🍲</div>
+        <h2 style="font-family:var(--font-display); font-size:1.65rem; margin-bottom:0.5rem;">Your Smart Cart is Empty</h2>
+        <p style="color:var(--text-muted); margin-bottom:1.25rem;">Explore regional favorites, coastal curries, or build a 5-course combo with our Smart Meal Builder!</p>
+        <a href="/" class="btn-add-food" style="padding:0.75rem 1.6rem; font-size:0.95rem;">Explore Regional Dishes →</a>
+    </div>
+    {% else %}
+    <div style="display:grid; grid-template-columns:1.35fr 1fr; gap:1.75rem; align-items:start;">
+        <!-- Left Column: Cart Items, Coupons, Tasty Points -->
+        <div style="display:flex; flex-direction:column; gap:1.4rem;">
+            <!-- Free Delivery Progress Bar (Section 37) -->
+            <div style="background:var(--surface-card); padding:1.15rem 1.4rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <div style="font-weight:700; font-size:0.9rem;">
+                    {% if free_delivery_progress.unlocked %}
+                        🎉 Congratulations! You unlocked FREE Delivery from {{ cart.business.name }}!
+                    {% else %}
+                        🚚 Add <strong>₹{{ free_delivery_progress.remaining|floatformat:0 }}</strong> more for FREE Delivery (Threshold: ₹{{ free_delivery_progress.threshold|floatformat:0 }})
+                    {% endif %}
+                </div>
+                <div class="tt-progress-track" style="height:8px; margin-top:8px;">
+                    <div class="tt-progress-fill" style="width:{{ free_delivery_progress.percent }}%;"></div>
+                </div>
+            </div>
+
+            <!-- Line Items -->
+            <div style="background:var(--surface-card); padding:1.4rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.3rem; margin-bottom:1rem;">Order Items ({{ cart.get_item_count }})</h3>
+                {% for item in items %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.85rem 0; border-bottom:1px dashed var(--border-soft); gap:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.85rem;">
+                        <img src="{{ item.food_item.get_image }}" alt="{{ item.food_item.name }}" style="width:64px; height:64px; border-radius:12px; object-fit:cover;">
+                        <div>
+                            <div style="font-weight:700; font-size:0.96rem;">{{ item.food_item.name }}</div>
+                            <div style="font-size:0.78rem; color:var(--text-muted);">{{ item.get_customization_display|default:"Standard Preparation" }}</div>
+                            <div style="font-size:0.84rem; font-weight:700; color:var(--region-primary); margin-top:2px;">₹{{ item.get_unit_price|floatformat:0 }} each</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:1rem;">
+                        <div class="tt-qty-stepper">
+                            <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, -1)">-</button>
+                            <span style="font-weight:700; padding:0 0.4rem;">{{ item.quantity }}</span>
+                            <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, 1)">+</button>
+                        </div>
+                        <strong style="min-width:64px; text-align:right;">₹{{ item.get_line_total|floatformat:0 }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Coupons & Tasty Points Redemption (Section 27) -->
+            <div style="background:var(--surface-card); padding:1.4rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">🏷️ Apply Coupon or Redeem Tasty Points</h3>
+                <form method="post" style="display:flex; gap:0.6rem; margin-bottom:1rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="apply_coupon">
+                    <input type="text" name="coupon_code" value="{{ cart.applied_coupon.code|default:'' }}" placeholder="Enter code e.g. TASTY20 or FREEDEL" style="flex:1; padding:0.6rem 0.85rem; border-radius:10px; border:1px solid var(--border-soft); text-transform:uppercase;">
+                    <button type="submit" class="btn-add-food">Apply Coupon</button>
+                    {% if cart.applied_coupon %}
+                    <button type="submit" name="action" value="remove_coupon" class="tt-filter-chip">Remove</button>
+                    {% endif %}
+                </form>
+
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                    {% for cp in available_coupons %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="apply_coupon">
+                        <input type="hidden" name="coupon_code" value="{{ cp.code }}">
+                        <button type="submit" class="tt-filter-chip" style="font-size:0.75rem;">
+                            <strong>{{ cp.code }}</strong> — {{ cp.title }}
+                        </button>
+                    </form>
+                    {% endfor %}
+                </div>
+
+                {% if user.is_authenticated %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; background:var(--region-bg); border-radius:12px; border:1px solid var(--border-soft);">
+                    <div>
+                        <strong style="font-size:0.86rem;">⭐ Tasty Points Available: {{ user_tasty_points }} pts</strong>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Redeem up to 100 points (₹100 instant discount)</div>
+                    </div>
+                    <button type="button" class="tt-filter-chip {% if cart.redeem_points > 0 %}active{% endif %}"
+                            onclick="fetch('/api/cart/', {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')}, body:JSON.stringify({action:'toggle_points', use_points: {{ cart.redeem_points|yesno:'false,true' }}})}).then(()=>window.location.reload())">
+                        {% if cart.redeem_points > 0 %}✓ Redeeming {{ cart.redeem_points }} Pts{% else %}Redeem Points{% endif %}
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column: Bill Breakdown + Delivery Address + Mock Payment Gateway (Sections 26, 37) -->
+        <div style="background:var(--surface-card); padding:1.6rem; border-radius:20px; border:1px solid var(--border-soft); box-shadow:var(--shadow-hover);">
+            <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:1rem;">Bill Summary & Secure Checkout</h3>
+
+            <div style="font-size:0.88rem; display:flex; flex-direction:column; gap:0.5rem; padding-bottom:1rem; border-bottom:1px dashed var(--border-soft); margin-bottom:1.1rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>Items Subtotal</span>
+                    <strong>₹{{ cart.get_subtotal }}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:#15803D;">
+                    <span>Coupon Discount {% if cart.applied_coupon %}({{ cart.applied_coupon.code }}){% endif %}</span>
+                    <strong>- ₹{{ cart.get_discount }}</strong>
+                </div>
+                {% if cart.redeem_points > 0 %}
+                <div style="display:flex; justify-content:space-between; color:#15803D;">
+                    <span>Tasty Points Discount ({{ cart.redeem_points }} pts)</span>
+                    <strong>- ₹{{ cart.get_points_discount }}</strong>
+                </div>
+                {% endif %}
+                <div style="display:flex; justify-content:space-between;">
+                    <span>GST & Kitchen Packaging (5%)</span>
+                    <span>₹{{ cart.get_tax }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>Delivery Partner Fee</span>
+                    <span>{% if cart.get_delivery_fee == 0 %}<strong style="color:#15803D;">FREE</strong>{% else %}₹{{ cart.get_delivery_fee }}{% endif %}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:1.18rem; font-weight:800; padding-top:0.6rem; border-top:1px solid var(--border-soft); color:var(--region-primary);">
+                    <span>Grand Total</span>
+                    <span>₹{{ cart.get_total }}</span>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="place_order">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Recipient Name *</label>
+                        <input type="text" name="customer_name" value="{{ user.get_full_name|default:user.username }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Phone *</label>
+                        <input type="text" name="customer_phone" value="+91 9845011223" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                    </div>
+                </div>
+                <div style="margin-bottom:0.75rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Delivery Address *</label>
+                    <input type="text" name="delivery_address" value="Flat 302, Palm Grove Apartments, {{ delivery_area }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-bottom:0.9rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Area</label>
+                        <input type="text" name="delivery_area" value="{{ delivery_area }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">City</label>
+                        <input type="text" name="delivery_city" value="{{ delivery_city }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selector (Section 26: Mock Gateway, Never stores card numbers/CVV) -->
+                <div style="margin-bottom:1.1rem;">
+                    <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:0.45rem;">Select Payment Method (Mock Gateway)</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.82rem;">
+                        <label style="border:1px solid var(--border-soft); padding:0.55rem; border-radius:10px; cursor:pointer;">
+                            <input type="radio" name="payment_method" value="UPI" checked> 📱 UPI (GPay / PhonePe)
+                        </label>
+                        <label style="border:1px solid var(--border-soft); padding:0.55rem; border-radius:10px; cursor:pointer;">
+                            <input type="radio" name="payment_method" value="CARD"> 💳 Card (Tokenized)
+                        </label>
+                        <label style="border:1px solid var(--border-soft); padding:0.55rem; border-radius:10px; cursor:pointer;">
+                            <input type="radio" name="payment_method" value="NET_BANKING"> 🏦 Net Banking
+                        </label>
+                        <label style="border:1px solid var(--border-soft); padding:0.55rem; border-radius:10px; cursor:pointer;">
+                            <input type="radio" name="payment_method" value="COD"> 💵 Cash on Delivery
+                        </label>
+                    </div>
+                    <div style="font-size:0.71rem; color:var(--text-muted); margin-top:0.35rem;">
+                        🔒 PCI-Safe Architecture: Tasty Tap never stores card numbers or CVV.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-qcart-order" style="font-size:1rem;">
+                    Place Order & Pay ₹{{ cart.get_total }} →
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</main>
+{% endblock %}

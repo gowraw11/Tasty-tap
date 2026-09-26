@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Admin Marketplace Control & Regional Theme Manager | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:1.75rem;">
+    <div class="tt-section-header">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">PLATFORM GOVERNANCE & ANALYTICS</span>
+            <h1 class="tt-section-title">Admin Marketplace Control 🛡️</h1>
+            <p class="tt-section-sub">Verify local food businesses, manage regional themes, monitor orders, and configure platform rules.</p>
+        </div>
+        <a href="/django-admin/" class="tt-filter-chip">Open Django System Admin ↗</a>
+    </div>
+
+    <!-- Platform Analytics KPIs (Section 32) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
+        <div style="background:var(--surface-card); padding:1.1rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Total Revenue</div>
+            <div style="font-size:1.65rem; font-weight:800; color:var(--region-primary);">₹{{ total_revenue|floatformat:0 }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.1rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Total Orders</div>
+            <div style="font-size:1.65rem; font-weight:800;">{{ total_orders }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.1rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Active Businesses</div>
+            <div style="font-size:1.65rem; font-weight:800; color:#15803D;">{{ active_businesses }} / {{ total_businesses }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.1rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Pending Verification</div>
+            <div style="font-size:1.65rem; font-weight:800; color:#D97706;">{{ pending_businesses_count }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.1rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Total Users & Riders</div>
+            <div style="font-size:1.65rem; font-weight:800;">{{ total_users }} ({{ active_delivery_partners }} Riders)</div>
+        </div>
+    </div>
+
+    <!-- 1. Business Verification & Approval Panel (Sections 4 & 31) -->
+    <section style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:2rem;">
+        <h2 style="font-family:var(--font-display); font-size:1.45rem; margin-bottom:0.85rem;">
+            ✅ Business Verification & Approval Queue
+        </h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1rem;">
+            {% for biz in all_businesses|slice:":8" %}
+            <div style="padding:1.1rem; border-radius:14px; border:1px solid var(--border-soft); background:var(--region-bg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <strong style="font-size:1rem;">{{ biz.name }}</strong>
+                    <span class="tt-badge {% if biz.status == 'APPROVED' %}badge-verified{% else %}badge-top-rated{% endif %}">
+                        {{ biz.get_status_display }}
+                    </span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.65rem;">
+                    Owner: <strong>{{ biz.owner_name }}</strong> • {{ biz.get_business_type_display }}<br>
+                    Location: {{ biz.area }}, {{ biz.city }} ({{ biz.region.name|default:"India" }}) • Joining Fee: ₹{{ biz.joining_cost_inr }}
+                </div>
+                <form method="post" style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="verify_business">
+                    <input type="hidden" name="business_id" value="{{ biz.id }}">
+                    <button type="submit" name="decision" value="APPROVED" class="btn-add-food" style="background:#15803D; padding:0.3rem 0.65rem; font-size:0.75rem;">Approve</button>
+                    <button type="submit" name="decision" value="UNDER_REVIEW" class="btn-add-food" style="background:#1D4ED8; padding:0.3rem 0.65rem; font-size:0.75rem;">Under Review</button>
+                    <button type="submit" name="decision" value="CHANGES_REQUESTED" class="btn-add-food" style="background:#D97706; padding:0.3rem 0.65rem; font-size:0.75rem;">Request Changes</button>
+                    <button type="submit" name="decision" value="REJECTED" class="btn-add-food" style="background:#DC2626; padding:0.3rem 0.65rem; font-size:0.75rem;">Reject</button>
+                    <button type="submit" name="decision" value="SUSPENDED" class="tt-filter-chip" style="padding:0.3rem 0.65rem; font-size:0.75rem;">Suspend</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- 2. Regional Theme & Festival Admin Panel (Section 95) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.3rem; margin-bottom:0.75rem;">🌏 Regional Theme Manager (Section 95)</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.9rem;">Create or update any Indian state region, greeting, popular dishes, and theme colors dynamically.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_region">
+                <div style="margin-bottom:0.65rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Select Existing Region (or leave blank to create new)</label>
+                    <select name="region_id" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                        <option value="">+ Create New Indian State / Region</option>
+                        {% for reg in all_regions_admin %}
+                        <option value="{{ reg.id }}">{{ reg.emoji_flag }} {{ reg.name }} ({{ reg.greeting }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.65rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Region Name</label>
+                        <input type="text" name="name" placeholder="e.g. Odisha or Assam" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Regional Greeting</label>
+                        <input type="text" name="greeting" placeholder="e.g. Namaskara Karnataka 👋" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.6rem; margin-bottom:0.65rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Primary Color</label>
+                        <input type="text" name="primary_color" value="#B8532A" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Secondary Color</label>
+                        <input type="text" name="secondary_color" value="#1A5F72" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Accent Color</label>
+                        <input type="text" name="accent_color" value="#E69F38" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Popular Regional Foods (Comma-separated)</label>
+                    <input type="text" name="popular_dishes_preview" placeholder="Dalma, Chhena Poda, Pakhala Bhata" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+                <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.6rem;">Save Region & Theme</button>
+            </form>
+        </div>
+
+        <!-- Launch Regional Festival Campaign -->
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.3rem; margin-bottom:0.75rem;">🎊 Launch Regional Festival Campaign (Section 90)</h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_festival_campaign">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.65rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Target Region</label>
+                        <select name="region_id" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                            {% for reg in all_regions_admin %}
+                            <option value="{{ reg.id }}">{{ reg.emoji_flag }} {{ reg.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Festival Name</label>
+                        <input type="text" name="festival_name" placeholder="Onam / Pongal / Ugadi / Diwali" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                    </div>
+                </div>
+                <div style="margin-bottom:0.65rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Campaign Headline</label>
+                    <input type="text" name="title" placeholder="Grand Festival Sadhya & Sweet Specials 25% OFF" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.85rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Coupon Code</label>
+                        <input type="text" name="coupon_code" value="FESTIVAL25" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Discount %</label>
+                        <input type="number" name="discount_percentage" value="25" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                    </div>
+                </div>
+                <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.6rem;">Publish Festival Special</button>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}

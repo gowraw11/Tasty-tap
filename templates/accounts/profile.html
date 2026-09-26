@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}My Profile, Tasty Points Wallet & Orders | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem;">
+    <div class="tt-section-header">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">CUSTOMER ACCOUNT & WALLET</span>
+            <h1 class="tt-section-title">Hello, {{ user.get_full_name|default:user.username }} 👋</h1>
+        </div>
+        <div style="display:flex; gap:0.65rem;">
+            <a href="/wishlist/" class="tt-filter-chip">❤️ My Favorites</a>
+            <a href="/accounts/logout/" class="tt-filter-chip">Sign Out</a>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1.35fr; gap:1.75rem;">
+        <!-- Left Column: Tasty Points Wallet + Profile Settings + Saved Addresses -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <!-- Tasty Points Wallet Card (Section 27) -->
+            <div style="background:var(--region-gradient); color:#fff; padding:1.6rem; border-radius:20px; box-shadow:var(--shadow-hover);">
+                <div style="font-size:0.76rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; opacity:0.9;">TASTY POINTS REWARD WALLET</div>
+                <div style="font-family:var(--font-display); font-size:2.8rem; font-weight:800; margin:0.25rem 0;">
+                    {{ profile.tasty_points }} <span style="font-size:1.1rem;">Points</span>
+                </div>
+                <p style="font-size:0.84rem; opacity:0.92; margin-bottom:0.9rem;">
+                    1 Tasty Point = ₹1 discount on eligible orders. Earn 10 Points per ₹100 spent!
+                </p>
+                <div style="background:rgba(0,0,0,0.22); border-radius:12px; padding:0.75rem; font-size:0.78rem;">
+                    <div style="font-weight:700; margin-bottom:0.35rem;">Recent Points Activity:</div>
+                    {% for pt in points_history|slice:":4" %}
+                    <div style="display:flex; justify-content:space-between; padding:0.2rem 0;">
+                        <span>{{ pt.description }}</span>
+                        <strong>{% if pt.points > 0 %}+{% endif %}{{ pt.points }} pts</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Profile & Regional Preference Form -->
+            <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.9rem;">Profile & Regional Taste Preferences</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="profile">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                        <div>
+                            <label style="font-size:0.76rem; font-weight:700;">First Name</label>
+                            <input type="text" name="first_name" value="{{ user.first_name }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.76rem; font-weight:700;">Phone</label>
+                            <input type="text" name="phone" value="{{ profile.phone }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="font-size:0.76rem; font-weight:700;">Preferred Food Region</label>
+                        <select name="selected_region" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                            {% for reg in all_regions %}
+                            <option value="{{ reg.slug }}" {% if profile.selected_region_id == reg.id %}selected{% endif %}>{{ reg.emoji_flag }} {{ reg.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-bottom:0.9rem;">
+                        <label style="font-size:0.76rem; font-weight:700;">Favorite Cuisines (for Tasty AI)</label>
+                        <input type="text" name="favorite_cuisines" value="{{ preference.favorite_cuisines }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                    <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.65rem;">Save Preferences</button>
+                </form>
+            </div>
+
+            <!-- Saved Delivery Addresses -->
+            <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">📍 Saved Delivery Addresses</h3>
+                {% for addr in addresses %}
+                <div style="padding:0.65rem; border:1px solid var(--border-soft); border-radius:10px; margin-bottom:0.6rem; font-size:0.83rem;">
+                    <strong>{{ addr.label }}:</strong> {{ addr.address_line }}, {{ addr.area }}, {{ addr.city }} - {{ addr.pincode }}
+                </div>
+                {% endfor %}
+                <form method="post" style="margin-top:0.85rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="add_address">
+                    <div style="display:grid; grid-template-columns:1fr 2fr; gap:0.5rem; margin-bottom:0.5rem;">
+                        <select name="label" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                            <option value="Home">Home</option>
+                            <option value="Work">Work</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="text" name="address_line" placeholder="House / Flat / Road" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem; margin-bottom:0.6rem;">
+                        <input type="text" name="area" placeholder="Area" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                        <input type="text" name="city" value="Mangaluru" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                        <input type="text" name="pincode" value="575001" style="padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                    </div>
+                    <button type="submit" class="tt-filter-chip">+ Add Address</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Order History with Reorder & PDF Invoice (Sections 30, 53) -->
+        <div style="background:var(--surface-card); padding:1.6rem; border-radius:20px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h2 style="font-family:var(--font-display); font-size:1.45rem; margin-bottom:1rem;">📦 Order History & One-Tap Reorder</h2>
+            {% for ord in orders %}
+            <div style="padding:1rem; border:1px solid var(--border-soft); border-radius:14px; margin-bottom:1rem; background:var(--region-bg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.45rem;">
+                    <div>
+                        <strong style="font-size:1rem;">Order #{{ ord.order_number }}</strong>
+                        <span style="font-size:0.82rem; color:var(--text-muted); margin-left:0.5rem;">{{ ord.created_at|date:"d M Y, h:i A" }}</span>
+                    </div>
+                    <span class="tt-badge badge-verified">{{ ord.get_status_display }}</span>
+                </div>
+                <div style="font-weight:700; font-size:0.9rem; color:var(--region-primary); margin-bottom:0.35rem;">
+                    🏪 {{ ord.business.name }} ({{ ord.business.city }})
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                    {% for item in ord.items.all %}
+                        {{ item.food_name }} ×{{ item.quantity }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; padding-top:0.55rem; border-top:1px dashed var(--border-soft);">
+                    <strong style="font-size:0.98rem;">Total: ₹{{ ord.total_amount }} ({{ ord.get_payment_method_display }})</strong>
+                    <div style="display:flex; gap:0.5rem;">
+                        <a href="/orders/{{ ord.order_number }}/track/" class="tt-filter-chip" style="font-size:0.78rem;">📍 Track / Review</a>
+                        <a href="/orders/{{ ord.order_number }}/invoice/" class="tt-filter-chip" style="font-size:0.78rem;">📄 PDF Invoice</a>
+                        <a href="/orders/{{ ord.order_number }}/reorder/" class="btn-add-food" style="font-size:0.78rem;">🔄 Reorder</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-muted);">No orders placed yet. Explore regional dishes on the homepage!</p>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+{% endblock %}

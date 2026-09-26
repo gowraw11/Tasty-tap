@@ -1,0 +1,26 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local Environment Variables & Secrets
+.env
+
+# Django Local Database & Cache
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/map_tiles/
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

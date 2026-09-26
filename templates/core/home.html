@@ -1,0 +1,810 @@
+{% extends 'base.html' %}
+{% block title %}TASTY TAP — {% if current_region %}{{ current_region.greeting }} | {% endif %}AI-Powered Local Food Marketplace{% endblock %}
+
+{% block content %}
+<!-- 1. STANDARD HERO SECTION (Matches Reference Image: Dark Gourmet Table + Left Text + Red & White Rectangular CTAs) -->
+<section class="tt-hero-standard">
+    <div class="tt-hero-standard-inner">
+        <!-- Left Column: Headline, Description & Dual Rectangular Buttons -->
+        <div>
+            <div class="tt-hero-region-tag">
+                <span>{{ current_region.emoji_flag|default:"🇮🇳" }} {{ time_greeting }} • {% if current_region %}{{ current_region.name }} Edition{% else %}All India Marketplace{% endif %}</span>
+            </div>
+            <h1 class="tt-hero-standard-title">
+                Welcome to Tasty Tap
+                {% if current_region %}
+                <span style="display:block; font-size:0.58em; font-weight:700; color:#FFB703; margin-top:0.25rem;">
+                    {{ current_region.greeting }} — {{ current_region.tagline }}
+                </span>
+                {% endif %}
+            </h1>
+            <p class="tt-hero-standard-desc">
+                {% if current_region %}
+                    {{ current_region.subheading }} Order directly from verified local hotels, restaurants, cafes, and home kitchens with transparent pricing.
+                {% else %}
+                    Order authentic regional dishes, traditional coastal curries, biryanis, and daily tiffins from verified local food businesses around you.
+                {% endif %}
+            </p>
+            <div class="tt-hero-standard-btns">
+                <a href="#our-menu-section" class="btn-hero-red">EXPLORE MENU</a>
+                <a href="#home-map-section" class="btn-hero-white">LIVE STORE MAP</a>
+                <button type="button" class="tt-pill-btn" style="padding:0.8rem 1.2rem; font-size:0.82rem;" onclick="document.getElementById('tt-region-modal').classList.add('open')">
+                    📍 Switch Region ({{ current_region.name|default:"All India" }})
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Column: Signature Dish Highlights with Authentic Dish Photos -->
+        <div class="tt-hero-showcase-plates">
+            {% for food in featured_foods|slice:":4" %}
+            <a href="/food/{{ food.slug }}/" class="tt-hero-plate-card">
+                <img src="{{ food.get_image }}" alt="{{ food.name }}">
+                <div style="min-width:0;">
+                    <div style="font-weight:800; font-size:0.88rem; color:#FFFFFF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        {{ food.name }}
+                    </div>
+                    <div style="font-size:0.74rem; color:#CBD5E1; margin:2px 0;">
+                        {{ food.business.name }}
+                    </div>
+                    <span style="display:inline-block; background:var(--brand-red); color:#fff; font-size:0.72rem; font-weight:800; padding:0.12rem 0.5rem; border-radius:4px;">
+                        ₹{{ food.effective_price|floatformat:0 }}.00
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- 2. 4-COLUMN FEATURE ICONS ROW (Matches Reference Image: Fast Delivery, Fresh Food, Experienced Chefs, A Variety of Dishes) -->
+<section class="tt-features-strip">
+    <div class="tt-features-grid">
+        <!-- Feature 1: Fast Delivery -->
+        <div class="tt-feature-box">
+            <div class="tt-feature-icon">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="3" width="15" height="13" rx="1"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+            </div>
+            <h3 class="tt-feature-title">Fast Delivery</h3>
+            <div class="tt-feature-divider"></div>
+            <p class="tt-feature-text">Everything you order at Tasty Tap is quickly delivered to your door with live GPS rider tracking.</p>
+        </div>
+
+        <!-- Feature 2: Fresh Food -->
+        <div class="tt-feature-box">
+            <div class="tt-feature-icon">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
+                    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
+                    <line x1="6" y1="2" x2="6" y2="4"></line>
+                    <line x1="10" y1="2" x2="10" y2="4"></line>
+                    <line x1="14" y1="2" x2="14" y2="4"></line>
+                </svg>
+            </div>
+            <h3 class="tt-feature-title">Fresh Food</h3>
+            <div class="tt-feature-divider"></div>
+            <p class="tt-feature-text">We use only the best regional ingredients and freshly ground spices to cook tasty fresh food for you.</p>
+        </div>
+
+        <!-- Feature 3: Experienced Chefs -->
+        <div class="tt-feature-box">
+            <div class="tt-feature-icon">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
+                    <line x1="6" y1="17" x2="18" y2="17"></line>
+                </svg>
+            </div>
+            <h3 class="tt-feature-title">Experienced Chefs</h3>
+            <div class="tt-feature-divider"></div>
+            <p class="tt-feature-text">Our partner stores consist of heritage hotel chefs, tiffin masters, and skilled home cooks with years of experience.</p>
+        </div>
+
+        <!-- Feature 4: A Variety of Dishes -->
+        <div class="tt-feature-box">
+            <div class="tt-feature-icon">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7a8 8 0 0 1 8 8H3a8 8 0 0 1 8-8V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2Z"></path>
+                    <line x1="2" y1="18" x2="22" y2="18"></line>
+                </svg>
+            </div>
+            <h3 class="tt-feature-title">A Variety of Dishes</h3>
+            <div class="tt-feature-divider"></div>
+            <p class="tt-feature-text">In our menu you’ll find a wide variety of authentic dishes across 12 Indian culinary regions, desserts, and drinks.</p>
+        </div>
+    </div>
+</section>
+
+<!-- 3. FOOD CATEGORIES STRIP -->
+<div class="tt-category-strip-wrap">
+    <div class="tt-category-strip">
+        {% for cat in food_categories|slice:":6" %}
+        <a href="/?category={{ cat.slug }}#our-menu-section" class="tt-cat-card {% if active_category == cat.slug %}active{% endif %}">
+            <img src="{{ cat.image_url }}"
+                 alt="{{ cat.name }}"
+                 class="tt-cat-thumb"
+                 loading="lazy">
+            <span class="tt-cat-title">{{ cat.name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 4. MAIN WORKSPACE: "OUR MENU" (Matches Right Screen of Reference Image) + STICKY QUICK ORDER CART -->
+<main class="tt-main-container">
+    <!-- Regional Specialties Quick Bar -->
+    {% if current_region %}
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.75rem; padding:0.85rem 1.25rem; background:var(--surface-card); border-radius:10px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+            <span style="font-weight:800; font-size:0.84rem; color:var(--brand-red);">
+                {{ current_region.emoji_flag }} {{ current_region.name }} Specialties:
+            </span>
+            {% for dish in current_region.get_popular_dishes_list|slice:":6" %}
+            <a href="/explore/?q={{ dish|urlencode }}" class="tt-filter-chip" style="padding:0.26rem 0.7rem; font-size:0.76rem;">{{ dish }}</a>
+            {% endfor %}
+        </div>
+        <button type="button" class="tt-filter-chip" style="font-size:0.76rem;" onclick="document.getElementById('tt-region-modal').classList.add('open')">
+            Change Region 📍
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="tt-coastal-split" id="our-menu-section">
+        <!-- LEFT COLUMN: "Our Menu" with BREAKFAST / LUNCH / DINNER Tabs & Horizontal Menu Cards -->
+        <div>
+            <div class="tt-our-menu-header-wrap">
+                <div class="tt-our-menu-pill-title">Our Menu</div>
+                <div class="tt-menu-tabs-bar">
+                    <button type="button" class="tt-menu-tab-btn active" onclick="switchMenuTab('ALL', this)">ALL</button>
+                    <button type="button" class="tt-menu-tab-btn" onclick="switchMenuTab('BREAKFAST', this)">BREAKFAST</button>
+                    <button type="button" class="tt-menu-tab-btn" onclick="switchMenuTab('LUNCH', this)">LUNCH</button>
+                    <button type="button" class="tt-menu-tab-btn" onclick="switchMenuTab('DINNER', this)">DINNER</button>
+                    {% if active_category %}
+                    <a href="/#our-menu-section" class="tt-menu-tab-btn" style="color:var(--brand-red);">CLEAR FILTER ✕</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Horizontal Menu Cards Grid (Exact layout from Reference Image) -->
+            <div class="tt-our-menu-list">
+                {% for food in all_menu_foods %}
+                <article class="tt-our-menu-item"
+                         data-menu-tabs="ALL,{% if food.meal_course == 'BREAKFAST' or food.meal_course == 'DRINK' or food.meal_course == 'SNACK' %}BREAKFAST{% endif %}{% if food.meal_course == 'MAIN' or food.meal_course == 'SIDE' %},LUNCH,DINNER{% endif %}{% if food.meal_course == 'STARTER' or food.meal_course == 'DESSERT' %},DINNER,LUNCH{% endif %}">
+                    <a href="/food/{{ food.slug }}/" class="tt-our-menu-thumb-wrap">
+                        <img src="{{ food.get_image }}" alt="{{ food.name }}" class="tt-our-menu-thumb" loading="lazy">
+                    </a>
+                    <div class="tt-our-menu-info">
+                        <div class="tt-our-menu-top-row">
+                            <a href="/food/{{ food.slug }}/" class="tt-our-menu-dish-name" title="{{ food.name }}">
+                                {{ food.name }}
+                            </a>
+                            <span class="tt-our-menu-price-badge">₹{{ food.effective_price|floatformat:2 }}</span>
+                        </div>
+                        <p class="tt-our-menu-desc">{{ food.description }}</p>
+                        <div class="tt-our-menu-bottom-row">
+                            <a href="/store/{{ food.business.slug }}/" style="font-size:0.74rem; font-weight:700; color:var(--text-muted);">
+                                🏪 {{ food.business.name }} • <span class="tt-star">★ {{ food.rating }}</span>
+                            </a>
+                            <div style="display:flex; align-items:center; gap:0.4rem;">
+                                <button type="button"
+                                        class="btn-customize-mini"
+                                        onclick="openCustomizeModal({{ food.id }}, '{{ food.name|escapejs }}', '{{ food.effective_price }}')">
+                                    Customize
+                                </button>
+                                <button type="button"
+                                        class="btn-add-food"
+                                        style="padding:0.36rem 0.75rem; font-size:0.78rem;"
+                                        onclick="addToCart({{ food.id }}, 1, 'Regular', '{{ food.get_spice_level_display }}', '', 0, false, this)">
+                                    Add +
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- RIGHT STICKY COLUMN: Quick Order Cart Widget -->
+        <aside id="tt-quick-cart-box" class="tt-quick-cart">
+            <div class="tt-quick-cart-header">
+                <div>
+                    <div class="tt-quick-cart-title">Quick Order Cart</div>
+                    <div id="tt-quick-cart-store" style="font-size:0.75rem; color:var(--text-muted);">
+                        {% if global_cart.business %}
+                            Ordering from {{ global_cart.business.name }}
+                        {% else %}
+                            Single-business smart checkout
+                        {% endif %}
+                    </div>
+                </div>
+                <span style="font-size:1.1rem;">🛒</span>
+            </div>
+
+            <div id="tt-quick-cart-items" class="tt-quick-cart-items">
+                {% if global_cart_items %}
+                    {% for item in global_cart_items %}
+                    <div class="tt-qcart-item">
+                        <img src="{{ item.food_item.get_image }}" alt="{{ item.food_item.name }}" class="tt-qcart-thumb">
+                        <div>
+                            <div class="tt-qcart-name">{{ item.food_item.name }} <span class="tt-star">★ {{ item.food_item.rating }}</span></div>
+                            <div class="tt-qcart-sub">{{ item.get_customization_display|default:"Freshly prepared" }}</div>
+                            <div class="tt-qcart-price">₹{{ item.get_line_total|floatformat:0 }}</div>
+                        </div>
+                        <div class="tt-qty-stepper">
+                            <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, -1)">-</button>
+                            <span style="font-size:0.82rem; font-weight:700; min-width:14px; text-align:center;">{{ item.quantity }}</span>
+                            <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, 1)">+</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align:center; padding:1.4rem 0.5rem; color:var(--text-muted); font-size:0.85rem;">
+                        🍲 Your Quick Order Cart is empty.<br>Tap <strong>Add +</strong> on any dish to begin!
+                    </div>
+                {% endif %}
+            </div>
+
+            {% with prog=global_cart.get_free_delivery_progress %}
+            <div id="tt-quick-cart-free-bar" class="tt-free-del-bar">
+                <div>
+                    {% if prog.unlocked %}
+                        🎉 Free Delivery Unlocked!
+                    {% else %}
+                        Add ₹{{ prog.remaining|floatformat:0 }} more for FREE Delivery
+                    {% endif %}
+                </div>
+                <div class="tt-progress-track">
+                    <div class="tt-progress-fill" style="width:{{ prog.percent }}%;"></div>
+                </div>
+            </div>
+            {% endwith %}
+
+            <div class="tt-qcart-total-row">
+                <span>Checkout Total</span>
+                <span id="tt-quick-cart-total">₹{{ global_cart.get_total|floatformat:0 }}</span>
+            </div>
+            <div id="tt-quick-cart-del-est" style="font-size:0.76rem; color:var(--text-muted);">
+                Delivery Estimation: {{ global_cart.business.estimated_delivery_time|default:"20–25m" }}
+            </div>
+
+            <span class="tt-delivery-est-pill">⚡ Live Kitchen & Rider Tracking</span>
+            <a href="/cart/" class="btn-qcart-order">PROCEED TO CHECKOUT</a>
+        </aside>
+    </div>
+
+    <!-- 5. INTERACTIVE LOCAL FOOD BUSINESSES MAP SECTION ON HOMEPAGE -->
+    <section id="home-map-section" style="margin-top:3.5rem;">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--brand-red);">🗺️ LIVE STORE RADAR & INTERACTIVE MAP</span>
+                <h2 class="tt-section-title">Explore Local Food Businesses on Map</h2>
+                <p class="tt-section-sub">Click any business in the directory or tap a pin on the map to inspect ratings, delivery time, and store menu.</p>
+            </div>
+            <a href="/explore/" class="btn-add-food" style="padding:0.55rem 1.15rem;">Open Full Map Explorer →</a>
+        </div>
+
+        <div class="tt-map-explorer-card">
+            <!-- Map Filter & Action Toolbar -->
+            <div class="tt-map-toolbar">
+                <div style="display:flex; gap:0.45rem; flex-wrap:wrap;" id="home-map-type-filters">
+                    <button type="button" class="tt-filter-chip active" onclick="filterHomeMap('ALL', this)">All ({{ home_map_markers|length }})</button>
+                    <button type="button" class="tt-filter-chip" onclick="filterHomeMap('SMALL_HOTEL', this)">🏨 Small Hotels</button>
+                    <button type="button" class="tt-filter-chip" onclick="filterHomeMap('RESTAURANT', this)">🍴 Restaurants</button>
+                    <button type="button" class="tt-filter-chip" onclick="filterHomeMap('CAFE', this)">☕ Cafes</button>
+                    <button type="button" class="tt-filter-chip" onclick="filterHomeMap('BAKERY', this)">🥐 Bakeries</button>
+                    <button type="button" class="tt-filter-chip" onclick="filterHomeMap('HOME_FOOD', this)">🏠 Home Food</button>
+                </div>
+                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:0.72rem; font-weight:800; color:#15803D; background:#DCFCE7; border:1px solid #86EFAC; padding:0.3rem 0.65rem; border-radius:999px;" title="Built-in Tasty Tap Maps API Key & Tile Engine Active">
+                        🔑 Maps API Key Active
+                    </span>
+                    <button type="button" class="tt-filter-chip" onclick="locateUserOnHomeMap()">📍 Locate Me</button>
+                    <button type="button" class="tt-filter-chip" onclick="fitAllHomeMapMarkers()">🗺️ Fit All Pins</button>
+                </div>
+            </div>
+
+            <!-- Split View: Interactive Business List + Leaflet Map -->
+            <div class="tt-map-split-layout">
+                <div class="tt-map-sidebar-list" id="home-map-sidebar-list">
+                    {% for m in home_map_markers %}
+                    <div class="tt-map-store-item"
+                         data-store-id="{{ m.id }}"
+                         data-store-type="{{ m.type_code }}"
+                         onclick="focusHomeMapMarker({{ m.id }})">
+                        <img src="{{ m.cover }}" alt="{{ m.name }}" class="tt-map-store-thumb" loading="lazy">
+                        <div style="min-width:0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
+                                <strong style="font-size:0.86rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.emoji }} {{ m.name }}</strong>
+                                <span style="background:#15803D; color:#fff; font-size:0.7rem; font-weight:800; padding:0.1rem 0.4rem; border-radius:4px;">★ {{ m.rating }}</span>
+                            </div>
+                            <div style="font-size:0.74rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                {{ m.type }} • {{ m.area }}, {{ m.city }}
+                            </div>
+                            <div style="font-size:0.72rem; font-weight:700; color:var(--brand-red); margin-top:2px;">
+                                ⏱ {{ m.delivery_time }} • Fee ₹{{ m.delivery_fee|floatformat:0 }} • {{ m.price_range }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div id="tt-home-leaflet-map" class="tt-map-canvas"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. TASTY AI RECOMMENDATIONS (Sections 20 & 85) -->
+    <section style="margin-top:3.5rem;">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--brand-red);">🤖 PERSONALIZED FOR YOU</span>
+                <h2 class="tt-section-title">Tasty AI Recommendations</h2>
+                <p class="tt-section-sub">Dynamic dishes curated from your selected region ({{ current_region.name|default:"All India" }}), time of day, and order history.</p>
+            </div>
+            <button type="button" class="tt-filter-chip" onclick="toggleTapAIDrawer()">Ask TAP AI Concierge 💬</button>
+        </div>
+
+        <div class="tt-food-grid">
+            {% for rec in ai_recommendations %}
+            <article class="tt-food-card">
+                <div class="tt-food-img-wrap">
+                    <a href="/food/{{ rec.food.slug }}/">
+                        <img src="{{ rec.food.get_image }}" alt="{{ rec.food.name }}" class="tt-food-img" loading="lazy">
+                    </a>
+                    <span style="position:absolute; top:10px; left:10px; background:var(--brand-red); color:#fff; font-size:0.7rem; font-weight:800; padding:0.22rem 0.55rem; border-radius:99px;">
+                        {{ rec.match_score }}% AI Match
+                    </span>
+                </div>
+                <div class="tt-food-body">
+                    <div style="font-size:0.73rem; font-weight:700; color:var(--brand-red); margin-bottom:0.25rem;">
+                        ✨ {{ rec.reason }}
+                    </div>
+                    <a href="/food/{{ rec.food.slug }}/" class="tt-food-title">{{ rec.food.name }}</a>
+                    <p class="tt-food-desc">{{ rec.food.description }}</p>
+                    <a href="/store/{{ rec.food.business.slug }}/" class="tt-food-store-link">
+                        🏪 {{ rec.food.business.name }} • {{ rec.food.business.estimated_delivery_time }}
+                    </a>
+                    <div class="tt-food-footer">
+                        <span class="tt-food-price">₹{{ rec.food.effective_price|floatformat:0 }}</span>
+                        <button type="button" class="btn-add-food" onclick="addToCart({{ rec.food.id }}, 1, 'Regular', 'Medium', '', 0, false, this)">
+                            Add +
+                        </button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- 7. DISCOVER LOCAL FOOD BUSINESSES (Sections 10, 34, 81, 82) -->
+    <section style="margin-top:3.5rem;">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--brand-red);">🏪 MULTI-VENDOR MARKETPLACE</span>
+                <h2 class="tt-section-title">Discover Local Food Businesses</h2>
+                <p class="tt-section-sub">Explore nearby hotels, popular local restaurants, small cafes, bakeries & home kitchens.</p>
+            </div>
+            <a href="/explore/" class="btn-add-food" style="padding:0.55rem 1.15rem; font-size:0.84rem;">🗺️ Full Directory & Map</a>
+        </div>
+
+        <!-- Interactive Filter Bar (Section 10) -->
+        <div class="tt-filter-bar">
+            <a href="/#local-businesses" class="tt-filter-chip {% if not active_filter %}active{% endif %}">All Nearby</a>
+            <a href="/?filter=top_rated#local-businesses" class="tt-filter-chip {% if active_filter == 'top_rated' %}active{% endif %}">★ Top Rated</a>
+            <a href="/?filter=fast_delivery#local-businesses" class="tt-filter-chip {% if active_filter == 'fast_delivery' %}active{% endif %}">⚡ Fast Delivery</a>
+            <a href="/?filter=budget#local-businesses" class="tt-filter-chip {% if active_filter == 'budget' %}active{% endif %}">₹ Budget Friendly</a>
+            <a href="/?filter=veg#local-businesses" class="tt-filter-chip {% if active_filter == 'veg' %}active{% endif %}">🌿 Pure Vegetarian</a>
+            <a href="/?filter=hotel#local-businesses" class="tt-filter-chip {% if active_filter == 'hotel' %}active{% endif %}">🏨 Small Hotels</a>
+            <a href="/?filter=cafe#local-businesses" class="tt-filter-chip {% if active_filter == 'cafe' %}active{% endif %}">☕ Cafes</a>
+            <a href="/?filter=bakery#local-businesses" class="tt-filter-chip {% if active_filter == 'bakery' %}active{% endif %}">🥐 Bakeries</a>
+            <a href="/?filter=home_food#local-businesses" class="tt-filter-chip {% if active_filter == 'home_food' %}active{% endif %}">🏠 Home Food</a>
+        </div>
+
+        <div class="tt-business-grid" id="local-businesses">
+            {% for biz in nearby_businesses %}
+            <article class="tt-business-card">
+                <div class="tt-biz-cover-wrap">
+                    <a href="/store/{{ biz.slug }}/">
+                        <img src="{{ biz.profile.get_cover }}" alt="{{ biz.name }}" class="tt-biz-cover" loading="lazy">
+                    </a>
+                    <div class="tt-biz-badges">
+                        {% for b in biz.get_badges|slice:":3" %}
+                        <span class="tt-badge {{ b.cls }}">{{ b.icon }} {{ b.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <button type="button"
+                            class="tt-wishlist-btn {% if biz.id in wishlisted_business_ids %}saved{% endif %}"
+                            onclick="toggleWishlistItem('business', {{ biz.id }}, this)"
+                            title="Save Business">
+                        {% if biz.id in wishlisted_business_ids %}♥{% else %}♡{% endif %}
+                    </button>
+                </div>
+                <div class="tt-biz-body">
+                    <div class="tt-biz-title-row">
+                        <a href="/store/{{ biz.slug }}/" class="tt-biz-name">{{ biz.get_map_marker_emoji }} {{ biz.name }}</a>
+                        <span class="tt-biz-rating-pill">★ {{ biz.rating }}</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.35rem;">
+                        {{ biz.cuisine }}
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.85rem;">
+                        <span>📍 {{ biz.area }}, {{ biz.city }} ({{ biz.distance_km }} km)</span>
+                        <span>⏱ {{ biz.estimated_delivery_time }}</span>
+                        <span>{{ biz.price_range }}</span>
+                    </div>
+                    <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; padding-top:0.65rem; border-top:1px dashed var(--border-soft);">
+                        <span style="font-size:0.76rem; font-weight:700; color:#15803D;">
+                            ● Open Now • Delivery ₹{{ biz.delivery_fee|floatformat:0 }}
+                        </span>
+                        <a href="/store/{{ biz.slug }}/" class="btn-add-food">View Store →</a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- 8. SUPPORT LOCAL FOOD BUSINESSES ❤️ & HIDDEN GEMS (Sections 11 & 50) -->
+    <section style="margin-top:3.5rem; background:var(--surface-card); border-radius:18px; padding:2rem; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; color:#DC2626; text-transform:uppercase;">❤️ COMMUNITY MARKETPLACE</span>
+                <h2 class="tt-section-title">Support Local Food Businesses ❤️</h2>
+                <p class="tt-section-sub">Discover amazing food from small hotels, home kitchens, and hidden food gems around you.</p>
+            </div>
+            <a href="/partner/" class="tt-filter-chip">Own a Business? Join for ₹0 →</a>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem;">
+            <div style="background:var(--region-bg); padding:1.2rem; border-radius:14px; border:1px solid var(--border-soft);">
+                <div style="font-weight:800; font-size:0.95rem; color:var(--brand-red); margin-bottom:0.65rem;">🏨 Popular Small Hotels</div>
+                {% for b in small_hotels %}
+                <a href="/store/{{ b.slug }}/" style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px dashed var(--border-soft); font-size:0.86rem;">
+                    <span><strong>{{ b.name }}</strong> ({{ b.city }})</span>
+                    <span class="tt-star">★ {{ b.rating }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div style="background:var(--region-bg); padding:1.2rem; border-radius:14px; border:1px solid var(--border-soft);">
+                <div style="font-weight:800; font-size:0.95rem; color:#0F766E; margin-bottom:0.65rem;">🏠 Home Food Businesses</div>
+                {% for b in home_food_businesses %}
+                <a href="/store/{{ b.slug }}/" style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px dashed var(--border-soft); font-size:0.86rem;">
+                    <span><strong>{{ b.name }}</strong> ({{ b.city }})</span>
+                    <span class="tt-star">★ {{ b.rating }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div style="background:var(--region-bg); padding:1.2rem; border-radius:14px; border:1px solid var(--border-soft);">
+                <div style="font-weight:800; font-size:0.95rem; color:#6D28D9; margin-bottom:0.65rem;">💎 Hidden Food Gems</div>
+                {% for b in hidden_gems %}
+                <a href="/store/{{ b.slug }}/" style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px dashed var(--border-soft); font-size:0.86rem;">
+                    <span><strong>{{ b.name }}</strong> ({{ b.city }})</span>
+                    <span class="tt-star">★ {{ b.rating }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 9. SMART MEAL BUILDER (Section 22) -->
+    <section class="tt-meal-builder-box" id="smart-meal-builder">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--brand-red);">🍱 AI COMBO PLANNER</span>
+                <h2 class="tt-section-title">Smart Meal Builder</h2>
+                <p class="tt-section-sub">Enter your budget, group size, and taste preference to auto-generate a 5-course meal (Starter, Main Course, Side, Drink & Dessert).</p>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0.85rem; align-items:end;">
+            <div>
+                <label style="font-size:0.78rem; font-weight:700;">Total Budget (₹)</label>
+                <input type="number" id="mb-budget" value="500" min="150" max="5000" step="50" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+            </div>
+            <div>
+                <label style="font-size:0.78rem; font-weight:700;">Number of People</label>
+                <input type="number" id="mb-people" value="2" min="1" max="10" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+            </div>
+            <div>
+                <label style="font-size:0.78rem; font-weight:700;">Cuisine Preference</label>
+                <input type="text" id="mb-cuisine" placeholder="e.g. Coastal, South Indian" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+            </div>
+            <div>
+                <label style="font-size:0.78rem; font-weight:700;">Veg / Non-Veg</label>
+                <select id="mb-veg" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+                    <option value="ANY">Veg & Non-Veg</option>
+                    <option value="VEG">Pure Vegetarian</option>
+                    <option value="NON_VEG">Non-Vegetarian</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.78rem; font-weight:700;">Spice Level</label>
+                <select id="mb-spice" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+                    <option value="ANY">Any Spice</option>
+                    <option value="MILD">Mild</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HOT">Hot 🌶️</option>
+                </select>
+            </div>
+            <div>
+                <button type="button" class="btn-qcart-order" onclick="generateSmartMeal()">Generate Meal Plan ✨</button>
+            </div>
+        </div>
+
+        <div id="mb-results-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-top:1.25rem; padding:0.9rem 1.2rem; background:var(--surface-card); border-radius:12px; border:1px solid var(--border-soft);">
+                <div>
+                    <strong>Sample 5-Course Meal for {{ sample_meal_plan.people }} People</strong>
+                    <span style="margin-left:0.75rem; font-size:0.84rem; color:var(--text-muted);">Calories: ~{{ sample_meal_plan.total_calories }} kcal</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <span style="font-size:1.25rem; font-weight:800; color:var(--brand-red);">Total: ₹{{ sample_meal_plan.total_price|floatformat:0 }}</span>
+                    <button type="button" class="btn-add-food" style="padding:0.55rem 1.15rem;" onclick="addSmartMealBundleToCart()">Add Full Meal to Cart 🛒</button>
+                </div>
+            </div>
+            <div class="tt-meal-courses-grid">
+                {% for c in sample_meal_plan.courses %}
+                <div class="tt-meal-slot-card" data-meal-food-id="{{ c.food_id }}" data-meal-qty="{{ c.quantity }}">
+                    <div style="font-size:0.72rem; font-weight:800; text-transform:uppercase; color:var(--brand-red); margin-bottom:0.35rem;">{{ c.course_label }}</div>
+                    <img src="{{ c.image_url }}" alt="{{ c.name }}" style="width:100%; height:110px; object-fit:cover; border-radius:8px; margin-bottom:0.5rem;">
+                    <div style="font-weight:700; font-size:0.92rem;">{{ c.name }}</div>
+                    <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:0.4rem;">{{ c.business_name }}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; font-weight:700;">
+                        <span>Qty: ×{{ c.quantity }}</span>
+                        <span>₹{{ c.line_total|floatformat:0 }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 10. REGIONAL FESTIVALS, COUPONS & OFFERS (Sections 13, 27, 90) -->
+    <section style="margin-top:3.25rem;">
+        <div class="tt-section-header">
+            <div>
+                <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--brand-red);">🎉 FESTIVAL & REGIONAL OFFERS</span>
+                <h2 class="tt-section-title">Festival Specials & Active Coupons</h2>
+                <p class="tt-section-sub">Celebrate Onam, Ugadi, Mysuru Dasara, Pongal & daily lunch hours with verified local offers.</p>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(265px, 1fr)); gap:1.15rem;">
+            {% for offer in regional_offers %}
+            <div style="background:var(--surface-card); border:1px solid var(--border-soft); border-left:5px solid var(--brand-red); border-radius:14px; padding:1.2rem; box-shadow:var(--shadow-soft);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <span style="background:rgba(240,62,31,0.12); color:var(--brand-red); font-size:0.72rem; font-weight:800; padding:0.2rem 0.55rem; border-radius:99px;">
+                        {{ offer.badge_text }}
+                    </span>
+                    {% if offer.coupon_code %}
+                    <code style="background:var(--region-bg); padding:0.2rem 0.55rem; border-radius:6px; font-weight:800; font-size:0.78rem; border:1px dashed var(--brand-red);">
+                        {{ offer.coupon_code }}
+                    </code>
+                    {% endif %}
+                </div>
+                <div style="font-family:var(--font-display); font-size:1.15rem; font-weight:700; margin-bottom:0.25rem;">{{ offer.title }}</div>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.65rem;">{{ offer.subtitle }}</p>
+                {% if offer.business %}
+                <a href="/store/{{ offer.business.slug }}/" style="font-size:0.78rem; font-weight:700; color:var(--brand-red);">
+                    🏪 Order from {{ offer.business.name }} →
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- 11. OWN A FOOD BUSINESS? ₹0 JOINING COST CTA (Sections 2, 47) -->
+    <section class="tt-partner-zero-banner">
+        <div>
+            <span style="background:rgba(244,162,97,0.2); color:#F4A261; padding:0.3rem 0.85rem; border-radius:99px; font-size:0.78rem; font-weight:800; letter-spacing:0.6px;">
+                TASTY TAP PARTNER PROGRAM
+            </span>
+            <h2 style="font-family:var(--font-display); font-size:2.35rem; margin:0.65rem 0 0.5rem;">
+                Own a Food Business? Bring Your Food Online.
+            </h2>
+            <p style="font-size:0.98rem; opacity:0.9; margin-bottom:1.25rem;">
+                Whether you run a Small Hotel, Restaurant, Cafe, Bakery, Juice Shop, Cloud Kitchen, Tiffin Service, or Home Food Business — create your digital storefront today.
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(185px, 1fr)); gap:0.45rem; font-size:0.85rem; margin-bottom:1.5rem;">
+                <div>✓ Create your online food store</div>
+                <div>✓ Add unlimited menu items</div>
+                <div>✓ Manage orders & inventory</div>
+                <div>✓ Receive customer reviews</div>
+                <div>✓ Create festival & lunch offers</div>
+                <div>✓ Business sales analytics</div>
+            </div>
+            <div style="display:flex; gap:0.85rem; flex-wrap:wrap;">
+                <a href="/partner/register/" class="btn-hero-red">JOIN TASTY TAP FOR FREE</a>
+                <a href="/partner/" class="btn-hero-white">BECOME A PARTNER</a>
+            </div>
+            <p style="font-size:0.72rem; opacity:0.75; margin-top:0.9rem;">
+                *Platform Notice: ₹0 Joining Cost / ₹0 Registration Fee applies to creating and onboarding your store on Tasty Tap. Applicable taxes (GST), payment gateway charges, delivery fees, or optional future promotional tiers are separate.
+            </p>
+        </div>
+
+        <div class="tt-zero-price-badge">
+            <div style="font-size:0.82rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; opacity:0.9;">START SELLING TODAY</div>
+            <div class="tt-zero-big">₹0</div>
+            <div style="font-size:1.15rem; font-weight:800; margin-bottom:0.4rem;">JOINING COST</div>
+            <div style="font-size:0.84rem; opacity:0.9; margin-bottom:1.1rem;">₹0 Registration Fee • Instant Digital Storefront</div>
+            <a href="/partner/register/" class="btn-qcart-order" style="background:#F4A261; color:#1B1410;">Join Free →</a>
+        </div>
+    </section>
+
+    <!-- 12. RECENTLY ORDERED & VERIFIED CUSTOMER REVIEWS (Sections 28, 30) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.75rem; margin-top:2.5rem;">
+        {% if recent_orders %}
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:0.85rem;">🔄 Recently Ordered</h3>
+            {% for ord in recent_orders %}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.7rem 0; border-bottom:1px dashed var(--border-soft);">
+                <div>
+                    <div style="font-weight:700; font-size:0.9rem;">
+                        Order #{{ ord.order_number }} — {{ ord.business.name }}
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-muted);">
+                        ₹{{ ord.total_amount }} • {{ ord.get_status_display }}
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.45rem;">
+                    <a href="/orders/{{ ord.order_number }}/track/" class="tt-filter-chip" style="padding:0.3rem 0.65rem; font-size:0.76rem;">Track</a>
+                    <a href="/orders/{{ ord.order_number }}/reorder/" class="btn-add-food" style="padding:0.3rem 0.7rem; font-size:0.76rem;">Reorder</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:0.85rem;">⭐ Verified Customer Reviews</h3>
+            {% for rev in recent_reviews|slice:":3" %}
+            <div style="padding:0.65rem 0; border-bottom:1px dashed var(--border-soft);">
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:700;">
+                    <span>{{ rev.user.first_name|default:rev.user.username }} on <a href="/store/{{ rev.business.slug }}/" style="color:var(--brand-red);">{{ rev.business.name }}</a></span>
+                    <span class="tt-star">★ {{ rev.business_rating }}.0 ✓ Verified</span>
+                </div>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.25rem;">"{{ rev.comment }}"</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+{{ home_map_markers|json_script:"home-map-markers-data" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let homeLeafletMap = null;
+let homeMarkerObjects = {};
+let homeMarkersData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mapEl = document.getElementById('tt-home-leaflet-map');
+    const dataEl = document.getElementById('home-map-markers-data');
+    if (!mapEl || !dataEl || typeof L === 'undefined') return;
+
+    homeMarkersData = JSON.parse(dataEl.textContent || '[]');
+    const defaultLat = homeMarkersData.length ? homeMarkersData[0].lat : 12.9141;
+    const defaultLng = homeMarkersData.length ? homeMarkersData[0].lng : 74.8560;
+
+    homeLeafletMap = L.map('tt-home-leaflet-map', { scrollWheelZoom: false }).setView([defaultLat, defaultLng], 11);
+    if (typeof attachTastyTapMapLayers === 'function') {
+        attachTastyTapMapLayers(homeLeafletMap);
+    } else {
+        L.tileLayer('/api/map-tiles/{z}/{x}/{y}.png?style=street', {
+            maxZoom: 19,
+            attribution: '&copy; Tasty Tap Maps Engine &bull; OpenStreetMap'
+        }).addTo(homeLeafletMap);
+    }
+
+    renderHomeMapMarkers('ALL', true);
+});
+
+function renderHomeMapMarkers(typeFilter, initialLoad = false) {
+    if (!homeLeafletMap) return;
+    Object.values(homeMarkerObjects).forEach(m => homeLeafletMap.removeLayer(m));
+    homeMarkerObjects = {};
+
+    const bounds = [];
+    const regionalBounds = [];
+    const activeRegionName = "{{ current_region.name|default:''|escapejs }}";
+
+    homeMarkersData.forEach(m => {
+        if (typeFilter !== 'ALL' && m.type_code !== typeFilter) return;
+
+        const icon = L.divIcon({
+            className: 'tt-custom-map-pin',
+            html: `<div class="tt-map-pin-pill"><span>${m.emoji}</span><span>${m.name}</span></div>`,
+            iconSize: null
+        });
+
+        const marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(homeLeafletMap);
+        marker.bindPopup(`
+            <div style="min-width:220px; font-family:'Plus Jakarta Sans',sans-serif;">
+                <img src="${m.cover}" alt="${m.name}" style="width:100%; height:92px; object-fit:cover; border-radius:8px; margin-bottom:6px;">
+                <div style="font-weight:800; font-size:14px; color:#1E2022;">${m.emoji} ${m.name}</div>
+                <div style="font-size:11px; color:#64748B; margin:2px 0;">${m.type} • ${m.area}, ${m.city}</div>
+                <div style="font-size:12px; font-weight:700; margin:5px 0; color:#15803D;">★ ${m.rating} • ⏱ ${m.delivery_time} • Fee ₹${Math.round(m.delivery_fee)}</div>
+                <a href="${m.url}" style="display:block; text-align:center; background:#F03E1F; color:#fff; padding:6px 10px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:800; margin-top:6px;">Open Store Menu →</a>
+            </div>
+        `);
+
+        marker.on('click', () => {
+            document.querySelectorAll('#home-map-sidebar-list .tt-map-store-item').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.storeId, 10) === m.id);
+            });
+        });
+
+        homeMarkerObjects[m.id] = marker;
+        bounds.push([m.lat, m.lng]);
+        if (activeRegionName && m.region_name === activeRegionName) {
+            regionalBounds.push([m.lat, m.lng]);
+        }
+    });
+
+    const targetBounds = (initialLoad && regionalBounds.length > 0) ? regionalBounds : bounds;
+    if (targetBounds.length > 1) {
+        homeLeafletMap.fitBounds(targetBounds, { padding: [48, 48], maxZoom: 13 });
+    } else if (targetBounds.length === 1) {
+        homeLeafletMap.setView(targetBounds[0], 13);
+    }
+}
+
+function filterHomeMap(typeCode, btnEl) {
+    document.querySelectorAll('#home-map-type-filters .tt-filter-chip').forEach(b => b.classList.toggle('active', b === btnEl));
+    document.querySelectorAll('#home-map-sidebar-list .tt-map-store-item').forEach(item => {
+        if (typeCode === 'ALL' || item.dataset.storeType === typeCode) {
+            item.style.display = 'grid';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    renderHomeMapMarkers(typeCode, false);
+}
+
+function focusHomeMapMarker(storeId) {
+    document.querySelectorAll('#home-map-sidebar-list .tt-map-store-item').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.storeId, 10) === storeId);
+    });
+    const marker = homeMarkerObjects[storeId];
+    if (marker && homeLeafletMap) {
+        homeLeafletMap.setView(marker.getLatLng(), 14, { animate: true });
+        marker.openPopup();
+    }
+}
+
+function fitAllHomeMapMarkers() {
+    const coords = Object.values(homeMarkerObjects).map(m => m.getLatLng());
+    if (coords.length > 0 && homeLeafletMap) {
+        homeLeafletMap.fitBounds(L.latLngBounds(coords), { padding: [48, 48], maxZoom: 12 });
+    }
+}
+
+function locateUserOnHomeMap() {
+    if (!homeLeafletMap) return;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                homeLeafletMap.setView([lat, lng], 13);
+                L.circleMarker([lat, lng], { radius: 9, color: '#2563EB', fillColor: '#3B82F6', fillOpacity: 0.9 })
+                    .addTo(homeLeafletMap)
+                    .bindPopup('<strong>📍 Your Current Location</strong>')
+                    .openPopup();
+            },
+            () => {
+                homeLeafletMap.setView([12.8714, 74.8426], 13);
+                showToast('Centered on default city: Mangaluru, Karnataka');
+            }
+        );
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% block title %}Explore Food & Local Businesses Near You | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:1.75rem;">
+    <div class="tt-section-header">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--brand-red);">🗺️ INTERACTIVE DISCOVERY & LIVE STORE MAP</span>
+            <h1 class="tt-section-title">Food Businesses & Dishes Near You</h1>
+            <p class="tt-section-sub">
+                Prioritizing <strong>{% if all_india %}All India{% elif current_region %}{{ current_region.emoji_flag }} {{ current_region.name }}{% else %}All Regions{% endif %}</strong>
+                • Click any store in the directory list or tap any map pin (🍴 🏨 ☕ 🥐 🥤 🏠) to inspect its menu.
+            </p>
+        </div>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+            {% if all_india %}
+                <a href="/explore/" class="tt-filter-chip active">🇮🇳 Showing All India (Switch to Regional Priority)</a>
+            {% else %}
+                <a href="/explore/?all_india=1&q={{ query|urlencode }}" class="tt-filter-chip">🌍 Search All India Toggle</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Search & Filter Form -->
+    <form method="get" action="/explore/" style="background:var(--surface-card); padding:1.15rem; border-radius:14px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:1.5rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:0.75rem; align-items:end;">
+        <div style="grid-column: span 2;">
+            <label style="font-size:0.76rem; font-weight:700;">Search Food, Business, City, or Price</label>
+            <input type="text" name="q" value="{{ query }}" placeholder="e.g. Kori Rotti, Chicken Biryani, Hotels near me, Bakery..." style="width:100%; padding:0.6rem 0.85rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+        </div>
+        <div>
+            <label style="font-size:0.76rem; font-weight:700;">Business Type</label>
+            <select name="type" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+                <option value="">All Business Types</option>
+                {% for code, lbl in business_type_choices %}
+                <option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size:0.76rem; font-weight:700;">Dietary</label>
+            <select name="diet" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+                <option value="">Veg & Non-Veg</option>
+                <option value="VEG" {% if selected_diet == 'VEG' %}selected{% endif %}>Pure Vegetarian</option>
+                <option value="NON_VEG" {% if selected_diet == 'NON_VEG' %}selected{% endif %}>Non-Vegetarian</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:0.76rem; font-weight:700;">Sort By</label>
+            <select name="sort" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;">
+                <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>Top Rated ★</option>
+                <option value="delivery_time" {% if selected_sort == 'delivery_time' %}selected{% endif %}>Fastest Delivery ⚡</option>
+                <option value="distance" {% if selected_sort == 'distance' %}selected{% endif %}>Nearest Distance 📍</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-add-food" style="padding:0.65rem 1.25rem; justify-content:center;">Apply Filters</button>
+    </form>
+
+    <!-- Upgraded Split-View Interactive Map & Store Explorer (Section 33) -->
+    <div class="tt-map-explorer-card" style="margin-bottom:2.75rem;">
+        <div class="tt-map-toolbar">
+            <div style="display:flex; gap:0.45rem; flex-wrap:wrap;" id="explore-map-type-filters">
+                <button type="button" class="tt-filter-chip active" onclick="filterExploreMap('ALL', this)">All Pins ({{ map_markers|length }})</button>
+                <button type="button" class="tt-filter-chip" onclick="filterExploreMap('SMALL_HOTEL', this)">🏨 Small Hotels</button>
+                <button type="button" class="tt-filter-chip" onclick="filterExploreMap('RESTAURANT', this)">🍴 Restaurants</button>
+                <button type="button" class="tt-filter-chip" onclick="filterExploreMap('CAFE', this)">☕ Cafes</button>
+                <button type="button" class="tt-filter-chip" onclick="filterExploreMap('BAKERY', this)">🥐 Bakeries</button>
+                <button type="button" class="tt-filter-chip" onclick="filterExploreMap('HOME_FOOD', this)">🏠 Home Food</button>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:0.72rem; font-weight:800; color:#15803D; background:#DCFCE7; border:1px solid #86EFAC; padding:0.3rem 0.65rem; border-radius:999px;" title="Built-in Tasty Tap Maps API Key & Tile Engine Active">
+                    🔑 Maps API Key Active
+                </span>
+                <button type="button" class="tt-filter-chip" onclick="locateUserOnExploreMap()">📍 Locate Me</button>
+                <button type="button" class="tt-filter-chip" onclick="fitAllExploreMarkers()">🗺️ Fit All Stores</button>
+            </div>
+        </div>
+
+        <div class="tt-map-split-layout" style="height:480px;">
+            <!-- Left Interactive Store List -->
+            <div class="tt-map-sidebar-list" id="explore-map-sidebar">
+                {% for m in map_markers %}
+                <div class="tt-map-store-item"
+                     data-store-id="{{ m.id }}"
+                     data-store-type="{{ m.type_code }}"
+                     onclick="focusExploreMarker({{ m.id }})">
+                    <img src="{{ m.cover }}" alt="{{ m.name }}" class="tt-map-store-thumb" loading="lazy">
+                    <div style="min-width:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem;">
+                            <strong style="font-size:0.86rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.emoji }} {{ m.name }}</strong>
+                            <span style="background:#15803D; color:#fff; font-size:0.7rem; font-weight:800; padding:0.1rem 0.4rem; border-radius:4px;">★ {{ m.rating }}</span>
+                        </div>
+                        <div style="font-size:0.74rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            {{ m.type }} • {{ m.area }}, {{ m.city }} ({{ m.distance_km }} km)
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <span style="font-size:0.72rem; font-weight:700; color:var(--brand-red);">
+                                ⏱ {{ m.delivery_time }} • Fee ₹{{ m.delivery_fee|floatformat:0 }}
+                            </span>
+                            <a href="{{ m.url }}" onclick="event.stopPropagation();" style="font-size:0.72rem; font-weight:800; color:var(--text-main); text-decoration:underline;">Visit →</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Right Leaflet Map Canvas -->
+            <div id="tt-explore-map" class="tt-map-canvas"></div>
+        </div>
+    </div>
+
+    <!-- Local Businesses Grid View -->
+    <div class="tt-section-header">
+        <h2 class="tt-section-title">Verified Local Businesses ({{ businesses|length }})</h2>
+    </div>
+    <div class="tt-business-grid" style="margin-bottom:3rem;">
+        {% for biz in businesses %}
+        <article class="tt-business-card">
+            <div class="tt-biz-cover-wrap">
+                <a href="/store/{{ biz.slug }}/">
+                    <img src="{{ biz.profile.get_cover }}" alt="{{ biz.name }}" class="tt-biz-cover" loading="lazy">
+                </a>
+                <div class="tt-biz-badges">
+                    {% for b in biz.get_badges|slice:":2" %}
+                    <span class="tt-badge {{ b.cls }}">{{ b.icon }} {{ b.label }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="tt-biz-body">
+                <div class="tt-biz-title-row">
+                    <a href="/store/{{ biz.slug }}/" class="tt-biz-name">{{ biz.get_map_marker_emoji }} {{ biz.name }}</a>
+                    <span class="tt-biz-rating-pill">★ {{ biz.rating }}</span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">{{ biz.cuisine }}</div>
+                <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                    📍 {{ biz.area }}, {{ biz.city }} ({{ biz.region.name|default:"India" }}) • ⏱ {{ biz.estimated_delivery_time }} • {{ biz.price_range }}
+                </div>
+                <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; padding-top:0.65rem; border-top:1px dashed var(--border-soft);">
+                    <span style="font-size:0.75rem; font-weight:700; color:#15803D;">Delivery ₹{{ biz.delivery_fee|floatformat:0 }}</span>
+                    <div style="display:flex; gap:0.4rem;">
+                        <button type="button" class="tt-filter-chip" style="padding:0.35rem 0.65rem; font-size:0.74rem;" onclick="focusExploreMarker({{ biz.id }}); document.getElementById('tt-explore-map').scrollIntoView({behavior:'smooth'});">📍 Pin</button>
+                        <a href="/store/{{ biz.slug }}/" class="btn-add-food">View Store →</a>
+                    </div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    <!-- Matching Dishes Grid -->
+    <div class="tt-section-header">
+        <h2 class="tt-section-title">Matching Regional & Local Dishes ({{ foods|length }})</h2>
+    </div>
+    <div class="tt-food-grid">
+        {% for food in foods %}
+        <article class="tt-food-card">
+            <div class="tt-food-img-wrap">
+                <a href="/food/{{ food.slug }}/">
+                    <img src="{{ food.get_image }}" alt="{{ food.name }}" class="tt-food-img" loading="lazy">
+                </a>
+                <span class="tt-veg-badge">
+                    <span class="tt-veg-dot {% if food.veg_type != 'VEG' %}non-veg{% endif %}"></span>
+                    {{ food.get_veg_type_display }}
+                </span>
+            </div>
+            <div class="tt-food-body">
+                <div class="tt-food-meta">
+                    <span class="tt-star">★ {{ food.rating }}</span>
+                    <span>⏱ {{ food.preparation_time }} mins</span>
+                </div>
+                <a href="/food/{{ food.slug }}/" class="tt-food-title">{{ food.name }}</a>
+                <p class="tt-food-desc">{{ food.description }}</p>
+                <a href="/store/{{ food.business.slug }}/" class="tt-food-store-link">🏪 {{ food.business.name }} ({{ food.business.city }})</a>
+                <div class="tt-food-footer">
+                    <span class="tt-food-price">₹{{ food.effective_price|floatformat:0 }}</span>
+                    <button type="button" class="btn-add-food" onclick="addToCart({{ food.id }}, 1, 'Regular', 'Medium', '', 0, false, this)">Add +</button>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</main>
+{{ map_markers|json_script:"explore-markers-data" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let exploreMap = null;
+let exploreMarkerObjs = {};
+let exploreMarkersList = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mapEl = document.getElementById('tt-explore-map');
+    const dataEl = document.getElementById('explore-markers-data');
+    if (!mapEl || !dataEl || typeof L === 'undefined') return;
+
+    exploreMarkersList = JSON.parse(dataEl.textContent || '[]');
+    const centerLat = exploreMarkersList.length ? exploreMarkersList[0].lat : 12.9141;
+    const centerLng = exploreMarkersList.length ? exploreMarkersList[0].lng : 74.8560;
+
+    exploreMap = L.map('tt-explore-map').setView([centerLat, centerLng], 11);
+    if (typeof attachTastyTapMapLayers === 'function') {
+        attachTastyTapMapLayers(exploreMap);
+    } else {
+        L.tileLayer('/api/map-tiles/{z}/{x}/{y}.png?style=street', {
+            maxZoom: 19,
+            attribution: '&copy; Tasty Tap Maps Engine &bull; OpenStreetMap'
+        }).addTo(exploreMap);
+    }
+
+    renderExploreMarkers('ALL', true);
+});
+
+function renderExploreMarkers(typeFilter, initialLoad = false) {
+    if (!exploreMap) return;
+    Object.values(exploreMarkerObjs).forEach(m => exploreMap.removeLayer(m));
+    exploreMarkerObjs = {};
+
+    const bounds = [];
+    const regionalBounds = [];
+    const activeRegionName = "{{ current_region.name|default:''|escapejs }}";
+
+    exploreMarkersList.forEach(m => {
+        if (typeFilter !== 'ALL' && m.type_code !== typeFilter) return;
+
+        const icon = L.divIcon({
+            className: 'tt-custom-map-pin',
+            html: `<div class="tt-map-pin-pill"><span>${m.emoji}</span><span>${m.name}</span></div>`,
+            iconSize: null
+        });
+
+        const marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(exploreMap);
+        marker.bindPopup(`
+            <div style="min-width:220px; font-family:'Plus Jakarta Sans',sans-serif;">
+                <img src="${m.cover}" alt="${m.name}" style="width:100%; height:94px; object-fit:cover; border-radius:8px; margin-bottom:6px;">
+                <div style="font-weight:800; font-size:14px; color:#1E2022;">${m.emoji} ${m.name}</div>
+                <div style="font-size:11px; color:#64748B; margin:2px 0;">${m.type} • ${m.area}, ${m.city}</div>
+                <div style="font-size:12px; font-weight:700; margin:5px 0; color:#15803D;">★ ${m.rating} • ⏱ ${m.delivery_time} • Fee ₹${Math.round(m.delivery_fee)}</div>
+                <a href="${m.url}" style="display:block; text-align:center; background:#F03E1F; color:#fff; padding:6px 10px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:800; margin-top:6px;">View Store Menu →</a>
+            </div>
+        `);
+
+        marker.on('click', () => {
+            document.querySelectorAll('#explore-map-sidebar .tt-map-store-item').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.storeId, 10) === m.id);
+            });
+        });
+
+        exploreMarkerObjs[m.id] = marker;
+        bounds.push([m.lat, m.lng]);
+        if (activeRegionName && m.region_name === activeRegionName) {
+            regionalBounds.push([m.lat, m.lng]);
+        }
+    });
+
+    const targetBounds = (initialLoad && regionalBounds.length > 0 && !"{{ all_india|yesno:'1,' }}") ? regionalBounds : bounds;
+    if (targetBounds.length > 1) {
+        exploreMap.fitBounds(targetBounds, { padding: [48, 48], maxZoom: 13 });
+    } else if (targetBounds.length === 1) {
+        exploreMap.setView(targetBounds[0], 13);
+    }
+}
+
+function filterExploreMap(typeCode, btnEl) {
+    document.querySelectorAll('#explore-map-type-filters .tt-filter-chip').forEach(b => b.classList.toggle('active', b === btnEl));
+    document.querySelectorAll('#explore-map-sidebar .tt-map-store-item').forEach(item => {
+        if (typeCode === 'ALL' || item.dataset.storeType === typeCode) {
+            item.style.display = 'grid';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    renderExploreMarkers(typeCode, false);
+}
+
+function focusExploreMarker(storeId) {
+    document.querySelectorAll('#explore-map-sidebar .tt-map-store-item').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.storeId, 10) === storeId);
+    });
+    const marker = exploreMarkerObjs[storeId];
+    if (marker && exploreMap) {
+        exploreMap.setView(marker.getLatLng(), 14, { animate: true });
+        marker.openPopup();
+    }
+}
+
+function fitAllExploreMarkers() {
+    const coords = Object.values(exploreMarkerObjs).map(m => m.getLatLng());
+    if (coords.length > 0 && exploreMap) {
+        exploreMap.fitBounds(L.latLngBounds(coords), { padding: [48, 48], maxZoom: 12 });
+    }
+}
+
+function locateUserOnExploreMap() {
+    if (!exploreMap) return;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                exploreMap.setView([lat, lng], 13);
+                L.circleMarker([lat, lng], { radius: 9, color: '#2563EB', fillColor: '#3B82F6', fillOpacity: 0.9 })
+                    .addTo(exploreMap)
+                    .bindPopup('<strong>📍 Your Current Location</strong>')
+                    .openPopup();
+            },
+            () => {
+                exploreMap.setView([12.8714, 74.8426], 13);
+                showToast('Centered on default city: Mangaluru, Karnataka');
+            }
+        );
+    }
+}
+</script>
+{% endblock %}

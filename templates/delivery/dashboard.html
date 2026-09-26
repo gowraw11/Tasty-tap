@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Delivery Partner Dashboard — {{ partner.full_name }} | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:1.75rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-secondary); text-transform:uppercase;">TASTY TAP DELIVERY PARTNER SYSTEM</span>
+            <h1 class="tt-section-title">Rider Dashboard — {{ partner.full_name }} 🚴</h1>
+            <p class="tt-section-sub">{{ partner.get_vehicle_type_display }} ({{ partner.vehicle_number }}) • Area: {{ partner.current_area }}, {{ partner.city }}</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_availability">
+            <button type="submit" class="tt-filter-chip {% if partner.is_available %}active{% endif %}">
+                {% if partner.is_available %}🟢 Online & Receiving Orders{% else %}⚪ Offline (Tap to Go Online){% endif %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Rider Earnings & Stats Row (Section 18) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:2rem;">
+        <div style="background:var(--surface-card); padding:1.25rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Today's Earnings</div>
+            <div style="font-size:1.8rem; font-weight:800; color:#15803D;">₹{{ partner.today_earnings|floatformat:0 }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.25rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Completed Deliveries</div>
+            <div style="font-size:1.8rem; font-weight:800;">{{ partner.total_deliveries }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.25rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Lifetime Earnings</div>
+            <div style="font-size:1.8rem; font-weight:800; color:var(--region-primary);">₹{{ partner.total_earnings|floatformat:0 }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.25rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Rider Rating</div>
+            <div style="font-size:1.8rem; font-weight:800; color:#E59923;">★ {{ partner.rating }}</div>
+        </div>
+    </div>
+
+    <!-- Available & Active Deliveries (Section 18) -->
+    <section style="background:var(--surface-card); padding:1.6rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:2rem;">
+        <h2 style="font-family:var(--font-display); font-size:1.45rem; margin-bottom:1rem;">🛵 Available & Active Deliveries</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:1.15rem;">
+            {% for deliv in available_deliveries %}
+            <div style="padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); background:var(--region-bg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+                    <strong style="font-size:1.05rem;">Order #{{ deliv.order.order_number }}</strong>
+                    <span class="tt-badge badge-verified">+₹{{ deliv.delivery_earning|floatformat:0 }} Payout</span>
+                </div>
+                <div style="font-size:0.86rem; margin-bottom:0.3rem;">
+                    <strong>🏪 Pickup:</strong> {{ deliv.order.business.name }} ({{ deliv.order.business.area }})
+                </div>
+                <div style="font-size:0.86rem; margin-bottom:0.45rem;">
+                    <strong>🏠 Customer Drop:</strong> {{ deliv.order.delivery_area }}, {{ deliv.order.delivery_city }}
+                </div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.85rem;">
+                    📍 Distance: {{ deliv.distance_km }} km • ⏱ Est. Time: {{ deliv.estimated_mins }} mins • Status: <strong>{{ deliv.get_status_display }}</strong>
+                </div>
+
+                <form method="post" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delivery_id" value="{{ deliv.id }}">
+                    <button type="submit" name="action" value="accept_delivery" class="btn-add-food" style="background:#1D4ED8;">Accept</button>
+                    <button type="submit" name="action" value="picked_up" class="btn-add-food" style="background:#D97706;">Picked Up</button>
+                    <button type="submit" name="action" value="delivered" class="btn-add-food" style="background:#15803D;">Delivered ✓</button>
+                    <a href="/orders/{{ deliv.order.order_number }}/track/" class="tt-filter-chip" style="font-size:0.76rem;">Map ↗</a>
+                </form>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-muted);">No pending deliveries right now.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Delivery History -->
+    <section style="background:var(--surface-card); padding:1.6rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+        <h2 style="font-family:var(--font-display); font-size:1.35rem; margin-bottom:0.85rem;">✅ Completed Delivery History</h2>
+        {% for d in completed_deliveries %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0; border-bottom:1px dashed var(--border-soft); font-size:0.86rem;">
+            <span><strong>Order #{{ d.order.order_number }}</strong> — {{ d.order.business.name }} → {{ d.order.delivery_area }} ({{ d.distance_km }} km)</span>
+            <strong style="color:#15803D;">+₹{{ d.delivery_earning }} (Delivered)</strong>
+        </div>
+        {% empty %}
+        <p style="color:var(--text-muted); font-size:0.86rem;">Completed deliveries will appear here.</p>
+        {% endfor %}
+    </section>
+</main>
+{% endblock %}

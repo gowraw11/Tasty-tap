@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% block title %}Track Order #{{ order.order_number }} Live | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem;">
+    <!-- Top Header & Actions -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--brand-red); text-transform:uppercase;">REAL-TIME ORDER & GPS RIDER TRACKER</span>
+            <h1 class="tt-section-title">Order #{{ order.order_number }} — {{ order.get_status_display }}</h1>
+            <p class="tt-section-sub">
+                From <strong>{{ order.business.name }}</strong> ({{ order.business.area }}, {{ order.business.city }})
+                → Delivering to <strong>{{ order.delivery_address }}, {{ order.delivery_area }}</strong>
+            </p>
+        </div>
+        <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
+            <a href="/orders/{{ order.order_number }}/invoice/" class="tt-filter-chip">📄 Download PDF Invoice</a>
+            <a href="/orders/{{ order.order_number }}/reorder/" class="tt-filter-chip">🔄 Reorder Items</a>
+            {% if order.status != 'DELIVERED' %}
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="advance_demo_status">
+                <button type="submit" class="btn-add-food">⚡ Advance Order Status</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 6-Stage Order Status Timeline (Sections 17 & 25) -->
+    <section style="background:var(--surface-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:1.75rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:0.85rem; text-align:center;">
+            {% for step in timeline_steps %}
+            <div style="padding:1rem 0.65rem; border-radius:12px; border:2px solid {% if step.active %}var(--brand-red){% elif step.completed %}#15803D{% else %}var(--border-soft){% endif %}; background:{% if step.active %}rgba(240,62,31,0.08){% elif step.completed %}#F0FDF4{% else %}var(--region-bg){% endif %};">
+                <div style="font-size:1.65rem; margin-bottom:0.35rem;">{{ step.icon }}</div>
+                <div style="font-weight:800; font-size:0.86rem;">{{ step.label }}</div>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">
+                    {% if step.active %}Current Stage{% elif step.completed %}Completed ✓{% else %}Upcoming{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:1.75rem; align-items:start;">
+        <!-- Upgraded Live Delivery Route Map (Section 25) -->
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.85rem;">
+                <div>
+                    <strong style="font-size:0.98rem;">🗺️ Live GPS Delivery Route Map</strong>
+                    <div style="font-size:0.76rem; color:var(--text-muted);">
+                        Distance: <strong>{{ delivery.distance_km|default:"2.1" }} km</strong> • Rider: <strong>{{ delivery.partner.full_name|default:"Kiran Kumar" }} ({{ delivery.partner.vehicle_number|default:"KA-19-EV-4022" }})</strong>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="background:#FEF2F2; color:var(--brand-red); border:1px solid #FECACA; padding:0.28rem 0.65rem; border-radius:6px; font-size:0.76rem; font-weight:800;">
+                        ⏱ ETA: {{ order.estimated_delivery_mins }} mins
+                    </span>
+                    <button type="button" class="tt-filter-chip" style="padding:0.3rem 0.65rem; font-size:0.75rem;" onclick="stepRiderForward()">🚴 Step Rider</button>
+                    <button type="button" class="tt-filter-chip" style="padding:0.3rem 0.65rem; font-size:0.75rem;" onclick="fitOrderRouteBounds()">🗺️ Fit Route</button>
+                </div>
+            </div>
+
+            <div id="tt-order-track-map" style="height:390px; width:100%; border-radius:12px; z-index:1; border:1px solid var(--border-soft);"></div>
+
+            <!-- Route Legend Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-top:0.85rem; padding-top:0.75rem; border-top:1px dashed var(--border-soft); font-size:0.78rem;">
+                <span>🏪 <strong>Pickup:</strong> {{ order.business.name }} ({{ order.business.area }})</span>
+                <span>🚴 <strong>Rider Status:</strong> {{ delivery.get_status_display|default:order.get_status_display }}</span>
+                <span>🏠 <strong>Drop-off:</strong> {{ order.delivery_area }}, {{ order.delivery_city }}</span>
+            </div>
+        </div>
+
+        <!-- Order Summary & Verified Review Form (Section 28) -->
+        <div style="display:flex; flex-direction:column; gap:1.4rem;">
+            <div style="background:var(--surface-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">Order Summary (#{{ order.order_number }})</h3>
+                {% for item in order.items.all %}
+                <div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px dashed var(--border-soft); font-size:0.86rem;">
+                    <span><strong>{{ item.food_name }}</strong> ×{{ item.quantity }} <small style="color:var(--text-muted);">{{ item.customization_details }}</small></span>
+                    <strong>₹{{ item.line_total }}</strong>
+                </div>
+                {% endfor %}
+                <div style="display:flex; justify-content:space-between; padding-top:0.75rem; font-size:1.05rem; font-weight:800; color:var(--brand-red);">
+                    <span>Total Paid ({{ order.get_payment_method_display }})</span>
+                    <span>₹{{ order.total_amount }}</span>
+                </div>
+            </div>
+
+            <!-- Verified Order Review Form (Section 28) -->
+            <div style="background:var(--surface-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+                <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.65rem;">⭐ Rate & Review Your Experience</h3>
+                {% if existing_review %}
+                <div style="background:#F0FDF4; padding:0.9rem; border-radius:12px; border:1px solid #BBF7D0; font-size:0.85rem;">
+                    <div style="font-weight:800; color:#166534;">✓ Verified Order Review Submitted (★ {{ existing_review.business_rating }}.0)</div>
+                    <p style="margin-top:0.35rem;">"{{ existing_review.comment }}"</p>
+                </div>
+                {% else %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="submit_review">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-bottom:0.65rem;">
+                        <div>
+                            <label style="font-size:0.76rem; font-weight:700;">Rate Business (1-5 ★)</label>
+                            <select name="business_rating" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                                <option value="5">★★★★★ (5 - Excellent)</option>
+                                <option value="4">★★★★☆ (4 - Very Good)</option>
+                                <option value="3">★★★☆☆ (3 - Good)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.76rem; font-weight:700;">Rate Food (1-5 ★)</label>
+                            <select name="food_rating" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft);">
+                                <option value="5">★★★★★ (5 - Delicious)</option>
+                                <option value="4">★★★★☆ (4 - Tasty)</option>
+                                <option value="3">★★★☆☆ (3 - Average)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:0.65rem;">
+                        <label style="font-size:0.76rem; font-weight:700;">Write Your Review</label>
+                        <textarea name="comment" rows="2" placeholder="How was the food quality, packaging & delivery?" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.6rem;">Submit Verified Review</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let trackMap = null;
+let riderMarkerObj = null;
+let completedLine = null;
+let remainingLine = null;
+
+const restLat = {{ order.business.latitude|default:12.8714 }};
+const restLng = {{ order.business.longitude|default:74.8426 }};
+const custLat = {{ order.delivery_lat|default:12.8820 }};
+const custLng = {{ order.delivery_lng|default:74.8510 }};
+
+const statusProgressMap = {
+    'PLACED': 0.1,
+    'ACCEPTED': 0.2,
+    'PREPARING': 0.35,
+    'READY': 0.5,
+    'OUT_FOR_DELIVERY': 0.78,
+    'DELIVERED': 1.0
+};
+let routeProgress = statusProgressMap['{{ order.status }}'] || 0.45;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mapEl = document.getElementById('tt-order-track-map');
+    if (!mapEl || typeof L === 'undefined') return;
+
+    const curLat = restLat + (custLat - restLat) * routeProgress;
+    const curLng = restLng + (custLng - restLng) * routeProgress;
+
+    trackMap = L.map('tt-order-track-map').setView([curLat, curLng], 14);
+    if (typeof attachTastyTapMapLayers === 'function') {
+        attachTastyTapMapLayers(trackMap);
+    } else {
+        L.tileLayer('/api/map-tiles/{z}/{x}/{y}.png?style=street', {
+            maxZoom: 19,
+            attribution: '&copy; Tasty Tap Maps Engine &bull; OpenStreetMap'
+        }).addTo(trackMap);
+    }
+
+    const restIcon = L.divIcon({
+        className: 'tt-track-pin',
+        html: `<div class="tt-map-pin-pill" style="background:#F03E1F;">🏪 {{ order.business.name|escapejs }}</div>`,
+        iconSize: null
+    });
+    const custIcon = L.divIcon({
+        className: 'tt-track-pin',
+        html: `<div class="tt-map-pin-pill" style="background:#15803D;">🏠 {{ order.customer_name|escapejs }}</div>`,
+        iconSize: null
+    });
+    const riderIcon = L.divIcon({
+        className: 'tt-track-pin',
+        html: `<div class="tt-map-pin-pill" style="background:#1E293B; border-color:#F59E0B;">🚴 Rider ({{ delivery.partner.full_name|default:"Kiran"|escapejs }})</div>`,
+        iconSize: null
+    });
+
+    L.marker([restLat, restLng], { icon: restIcon })
+        .addTo(trackMap)
+        .bindPopup('<strong>🏪 Pickup Kitchen: {{ order.business.name|escapejs }}</strong><br>{{ order.business.area|escapejs }}, {{ order.business.city|escapejs }}');
+
+    L.marker([custLat, custLng], { icon: custIcon })
+        .addTo(trackMap)
+        .bindPopup('<strong>🏠 Delivery Address</strong><br>{{ order.delivery_address|escapejs }}');
+
+    riderMarkerObj = L.marker([curLat, curLng], { icon: riderIcon })
+        .addTo(trackMap)
+        .bindPopup('<strong>🚴 Delivery Partner</strong><br>Status: {{ order.get_status_display|escapejs }}');
+
+    completedLine = L.polyline([[restLat, restLng], [curLat, curLng]], {
+        color: '#15803D',
+        weight: 4
+    }).addTo(trackMap);
+
+    remainingLine = L.polyline([[curLat, curLng], [custLat, custLng]], {
+        color: '#F03E1F',
+        weight: 4,
+        dashArray: '8, 8'
+    }).addTo(trackMap);
+
+    fitOrderRouteBounds();
+});
+
+function fitOrderRouteBounds() {
+    if (!trackMap) return;
+    const bounds = L.latLngBounds([[restLat, restLng], [custLat, custLng]]);
+    trackMap.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
+}
+
+function stepRiderForward() {
+    if (!trackMap || !riderMarkerObj) return;
+    routeProgress = routeProgress >= 0.95 ? 0.2 : Math.min(1.0, routeProgress + 0.18);
+    const curLat = restLat + (custLat - restLat) * routeProgress;
+    const curLng = restLng + (custLng - restLng) * routeProgress;
+
+    riderMarkerObj.setLatLng([curLat, curLng]);
+    if (completedLine) completedLine.setLatLngs([[restLat, restLng], [curLat, curLng]]);
+    if (remainingLine) remainingLine.setLatLngs([[curLat, curLng], [custLat, custLng]]);
+    riderMarkerObj.openPopup();
+}
+</script>
+{% endblock %}

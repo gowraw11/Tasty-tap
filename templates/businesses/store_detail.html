@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}{{ business.name }} — Official Digital Storefront | TASTY TAP{% endblock %}
+
+{% block content %}
+<!-- Store Cover Hero (Section 5) -->
+<section style="position:relative; height:290px; overflow:hidden; background:#1B1410;">
+    <img src="{{ business.profile.get_cover }}" alt="{{ business.name }}" style="width:100%; height:100%; object-fit:cover; opacity:0.65;">
+    <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(18,14,10,0.92), rgba(18,14,10,0.2)); display:flex; align-items:flex-end; padding:2rem;">
+        <div style="max-width:1360px; width:100%; margin:0 auto; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1.25rem; color:#fff;">
+            <div style="display:flex; align-items:center; gap:1.25rem;">
+                <img src="{{ business.profile.get_logo }}" alt="{{ business.name }}" style="width:84px; height:84px; border-radius:18px; object-fit:cover; border:3px solid #fff; box-shadow:0 8px 20px rgba(0,0,0,0.4);">
+                <div>
+                    <div style="display:flex; gap:0.45rem; flex-wrap:wrap; margin-bottom:0.4rem;">
+                        {% for b in business.get_badges %}
+                        <span class="tt-badge {{ b.cls }}">{{ b.icon }} {{ b.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <h1 style="font-family:var(--font-display); font-size:2.3rem; line-height:1.1;">{{ business.name }}</h1>
+                    <p style="font-size:0.95rem; opacity:0.9; margin-top:0.25rem;">
+                        {{ business.cuisine }} • 📍 {{ business.area }}, {{ business.city }} ({{ business.region.name|default:"India" }})
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; gap:0.85rem; align-items:center; background:rgba(255,255,255,0.14); backdrop-filter:blur(8px); padding:0.75rem 1.2rem; border-radius:16px;">
+                <div>
+                    <div style="font-size:1.3rem; font-weight:800; color:#F4A261;">★ {{ business.rating }}</div>
+                    <div style="font-size:0.72rem; opacity:0.85;">{{ business.total_reviews }} Verified Reviews</div>
+                </div>
+                <div style="border-left:1px solid rgba(255,255,255,0.25); padding-left:0.85rem;">
+                    <div style="font-weight:800; font-size:0.95rem;">{{ business.estimated_delivery_time }}</div>
+                    <div style="font-size:0.72rem; opacity:0.85;">Open Now • {{ business.price_range }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<main class="tt-main-container" style="padding-top:2rem;">
+    <div class="tt-coastal-split">
+        <!-- Left/Main Store Menu & Reviews -->
+        <div>
+            <!-- Store About & Active Offers -->
+            <div style="background:var(--surface-card); padding:1.35rem; border-radius:16px; border:1px solid var(--border-soft); margin-bottom:1.5rem;">
+                <div style="font-weight:700; margin-bottom:0.3rem;">About {{ business.name }}</div>
+                <p style="font-size:0.88rem; color:var(--text-muted);">{{ business.profile.description }}</p>
+                {% if store_offers %}
+                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.9rem;">
+                    {% for off in store_offers %}
+                    <div style="background:var(--region-bg); border:1px dashed var(--region-primary); padding:0.45rem 0.85rem; border-radius:10px; font-size:0.8rem; font-weight:700; color:var(--region-primary);">
+                        🎉 {{ off.title }} {% if off.coupon_code %}(Code: {{ off.coupon_code }}){% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Menu Filter Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.25rem;">
+                <div style="display:flex; gap:0.5rem;">
+                    <a href="/store/{{ business.slug }}/" class="tt-filter-chip {% if not veg_filter %}active{% endif %}">All Menu ({{ foods|length }})</a>
+                    <a href="/store/{{ business.slug }}/?veg=VEG" class="tt-filter-chip {% if veg_filter == 'VEG' %}active{% endif %}">🌿 Pure Veg</a>
+                    <a href="/store/{{ business.slug }}/?veg=NON_VEG" class="tt-filter-chip {% if veg_filter == 'NON_VEG' %}active{% endif %}">🍗 Non-Veg</a>
+                </div>
+                <form method="get" style="display:flex; gap:0.4rem;">
+                    <input type="text" name="q" value="{{ search_q }}" placeholder="Search in {{ business.name }}..." style="padding:0.45rem 0.85rem; border-radius:99px; border:1px solid var(--border-soft); font-size:0.84rem;">
+                    <button type="submit" class="btn-add-food">Search</button>
+                </form>
+            </div>
+
+            <!-- Category-Grouped Store Menu -->
+            {% for cat_name, items in menu_by_category.items %}
+            <div style="margin-bottom:2.25rem;">
+                <h2 style="font-family:var(--font-display); font-size:1.45rem; margin-bottom:0.9rem; padding-bottom:0.4rem; border-bottom:2px solid var(--border-soft);">
+                    {{ cat_name }} ({{ items|length }})
+                </h2>
+                <div class="tt-food-grid">
+                    {% for food in items %}
+                    <article class="tt-food-card">
+                        <div class="tt-food-img-wrap">
+                            <a href="/food/{{ food.slug }}/">
+                                <img src="{{ food.get_image }}" alt="{{ food.name }}" class="tt-food-img">
+                            </a>
+                            <span class="tt-veg-badge">
+                                <span class="tt-veg-dot {% if food.veg_type != 'VEG' %}non-veg{% endif %}"></span>
+                                {{ food.get_veg_type_display }}
+                            </span>
+                        </div>
+                        <div class="tt-food-body">
+                            <div class="tt-food-meta">
+                                <span class="tt-star">★ {{ food.rating }}</span>
+                                <span>⏱ {{ food.preparation_time }} mins</span>
+                            </div>
+                            <a href="/food/{{ food.slug }}/" class="tt-food-title">{{ food.name }}</a>
+                            <p class="tt-food-desc">{{ food.description }}</p>
+                            <div class="tt-food-footer">
+                                <div>
+                                    <span class="tt-food-price">₹{{ food.effective_price|floatformat:0 }}</span>
+                                    <button type="button" class="btn-customize-mini" onclick="openCustomizeModal({{ food.id }}, '{{ food.name|escapejs }}', '{{ food.effective_price }}')">Customize</button>
+                                </div>
+                                <button type="button" class="btn-add-food" onclick="addToCart({{ food.id }}, 1, 'Regular', '{{ food.get_spice_level_display }}', '', 0, false, this)">Add +</button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Verified Customer Reviews Section (Section 28) -->
+            <section style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); margin-top:2rem;">
+                <h3 style="font-family:var(--font-display); font-size:1.4rem; margin-bottom:1rem;">Customer Reviews ({{ store_reviews|length }})</h3>
+                {% for rev in store_reviews %}
+                <div style="padding:0.85rem 0; border-bottom:1px dashed var(--border-soft);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700;">
+                        <span>{{ rev.user.first_name|default:rev.user.username }} <span style="color:#15803D; font-size:0.75rem;">✓ Verified Order</span></span>
+                        <span class="tt-star">★ {{ rev.business_rating }}.0</span>
+                    </div>
+                    <p style="font-size:0.86rem; margin-top:0.3rem;">{{ rev.comment }}</p>
+                    {% if rev.business_reply %}
+                    <div style="margin-top:0.5rem; margin-left:1rem; padding:0.55rem 0.85rem; background:var(--region-bg); border-left:3px solid var(--region-primary); border-radius:8px; font-size:0.8rem;">
+                        <strong>Reply from {{ business.name }}:</strong> {{ rev.business_reply }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p style="color:var(--text-muted); font-size:0.88rem;">No reviews yet for this store.</p>
+                {% endfor %}
+            </section>
+        </div>
+
+        <!-- Right Sticky Quick Order Cart -->
+        <aside id="tt-quick-cart-box" class="tt-quick-cart">
+            <div class="tt-quick-cart-header">
+                <div>
+                    <div class="tt-quick-cart-title">Quick Order Cart</div>
+                    <div id="tt-quick-cart-store" style="font-size:0.75rem; color:var(--text-muted);">
+                        {{ global_cart.business.name|default:business.name }}
+                    </div>
+                </div>
+                <span>🛒</span>
+            </div>
+            <div id="tt-quick-cart-items" class="tt-quick-cart-items">
+                {% for item in global_cart_items %}
+                <div class="tt-qcart-item">
+                    <img src="{{ item.food_item.get_image }}" alt="{{ item.food_item.name }}" class="tt-qcart-thumb">
+                    <div>
+                        <div class="tt-qcart-name">{{ item.food_item.name }}</div>
+                        <div class="tt-qcart-price">₹{{ item.get_line_total|floatformat:0 }}</div>
+                    </div>
+                    <div class="tt-qty-stepper">
+                        <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, -1)">-</button>
+                        <span style="font-size:0.82rem; font-weight:700;">{{ item.quantity }}</span>
+                        <button type="button" class="tt-qty-btn" onclick="updateCartQty({{ item.id }}, 1)">+</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; padding:1.2rem; color:var(--text-muted); font-size:0.84rem;">
+                    Tap <strong>Add +</strong> on any dish from {{ business.name }}!
+                </div>
+                {% endfor %}
+            </div>
+            <div class="tt-qcart-total-row">
+                <span>Checkout Total</span>
+                <span id="tt-quick-cart-total">₹{{ global_cart.get_total|floatformat:0 }}</span>
+            </div>
+            <span class="tt-delivery-est-pill">Delivery: {{ business.estimated_delivery_time }} (Fee ₹{{ business.delivery_fee|floatformat:0 }})</span>
+            <a href="/cart/" class="btn-qcart-order">Proceed to Checkout →</a>
+        </aside>
+    </div>
+</main>
+{% endblock %}

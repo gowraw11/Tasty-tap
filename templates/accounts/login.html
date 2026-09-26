@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Sign In & Demo Accounts | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2.25rem; max-width:940px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2rem;">
+        <!-- Standard Login Form -->
+        <div style="background:var(--surface-card); padding:2rem; border-radius:20px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">SECURE AUTHENTICATION</span>
+            <h1 style="font-family:var(--font-display); font-size:1.85rem; margin:0.3rem 0 1rem;">Welcome Back 👋</h1>
+            <form method="post">
+                {% csrf_token %}
+                <div style="margin-bottom:0.9rem;">
+                    <label style="font-size:0.82rem; font-weight:700;">Username or Email</label>
+                    <input type="text" name="username" placeholder="e.g. customer_demo or rahul_tastybites" style="width:100%; padding:0.65rem 0.85rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                </div>
+                <div style="margin-bottom:1.1rem;">
+                    <label style="font-size:0.82rem; font-weight:700;">Password</label>
+                    <input type="password" name="password" placeholder="Enter password" style="width:100%; padding:0.65rem 0.85rem; border-radius:10px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                </div>
+                <button type="submit" class="btn-qcart-order">Sign In to Tasty Tap</button>
+            </form>
+            <div style="display:flex; justify-content:space-between; margin-top:1rem; font-size:0.83rem;">
+                <a href="/accounts/register/" style="color:var(--region-primary); font-weight:700;">Create Account →</a>
+                <a href="/accounts/forgot-password/" style="color:var(--text-muted);">Forgot Password?</a>
+            </div>
+        </div>
+
+        <!-- 1-Click Role Demo Login Panel (Ideal for College Viva & Portfolio Demo) -->
+        <div style="background:var(--surface-card); padding:2rem; border-radius:20px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-secondary); text-transform:uppercase;">INSTANT ROLE SWITCHER</span>
+            <h2 style="font-family:var(--font-display); font-size:1.65rem; margin:0.3rem 0 0.5rem;">1-Click Demo Login ⚡</h2>
+            <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:1.15rem;">
+                Test all 4 user roles instantly with pre-seeded data:
+            </p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="demo_role" value="CUSTOMER">
+                    <button type="submit" class="tt-filter-chip" style="width:100%; text-align:left; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                        <span>👤 <strong>Customer Demo</strong> (Ananya • 240 Tasty Points)</span>
+                        <span>Login →</span>
+                    </button>
+                </form>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="demo_role" value="BUSINESS_PARTNER">
+                    <button type="submit" class="tt-filter-chip" style="width:100%; text-align:left; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                        <span>🏪 <strong>Business Partner</strong> (Rahul • Tasty Bites Store)</span>
+                        <span>Dashboard →</span>
+                    </button>
+                </form>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="demo_role" value="DELIVERY_PARTNER">
+                    <button type="submit" class="tt-filter-chip" style="width:100%; text-align:left; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                        <span>🚴 <strong>Delivery Partner</strong> (Kiran • EV Scooter Rider)</span>
+                        <span>Rider Portal →</span>
+                    </button>
+                </form>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="demo_role" value="ADMIN">
+                    <button type="submit" class="tt-filter-chip" style="width:100%; text-align:left; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                        <span>🛡️ <strong>Platform Admin</strong> (Verify Stores & Regions)</span>
+                        <span>Admin Control →</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

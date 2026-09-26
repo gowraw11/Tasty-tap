@@ -1,0 +1,425 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="origin">
+    <title>{% block title %}TASTY TAP — Tap. Taste. Delivered. | AI Regional Food Marketplace{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'css/tasty_tap.css' %}">
+    {% if current_theme %}
+    <style>
+        :root {
+            --region-primary: {{ current_theme.primary_color }};
+            --region-secondary: {{ current_theme.secondary_color }};
+            --region-accent: {{ current_theme.accent_color }};
+            --region-bg: {{ current_theme.background }};
+            --region-wave: {{ current_theme.wave_color }};
+            --region-gradient: {{ current_theme.hero_gradient }};
+        }
+    </style>
+    {% endif %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Dynamic Region Transition Overlay (Triggered only when user explicitly switches region) -->
+    <div id="tt-region-transition-overlay" class="tt-region-transition-overlay">
+        <div style="font-size:3rem; margin-bottom:0.6rem;">🍽️ 🇮🇳</div>
+        <div id="tt-transition-from" style="font-size:1.05rem; opacity:0.88; margin-bottom:0.35rem;">Switching Food Region...</div>
+        <div id="tt-transition-to" style="font-family:var(--font-display); font-size:2.4rem; font-weight:800;">...to {{ current_region.name|default:"All India" }}</div>
+        <div style="margin-top:0.75rem; font-size:0.9rem; opacity:0.9;">Loading regional kitchens, local hotels & signature dishes...</div>
+    </div>
+
+    <!-- Top Standard Header / Navbar -->
+    <header class="tt-navbar">
+        <div class="tt-navbar-inner">
+            <a href="/" class="tt-brand">
+                <span class="tt-brand-badge">
+                    <span class="tt-brand-badge-top">Tasty</span>
+                    <span class="tt-brand-badge-bot">Tap</span>
+                </span>
+                <div>
+                    TASTY TAP
+                    <span class="tt-brand-sub">
+                        {% if current_region %}{{ current_region.name }} Edition • {% endif %}Tap. Taste. Delivered.
+                    </span>
+                </div>
+            </a>
+
+            <!-- Region Switcher & Delivery Location Selector (Sections 24, 88, 94) -->
+            <div class="tt-nav-selectors">
+                <button type="button" class="tt-pill-btn" onclick="document.getElementById('tt-region-modal').classList.add('open')" title="Switch Food Region">
+                    <span>📍 {% if current_region %}{{ current_region.emoji_flag }} {{ current_region.name }}{% else %}🇮🇳 All India{% endif %}</span>
+                    <span style="font-size:0.7rem;">▼</span>
+                </button>
+                <button type="button" class="tt-pill-btn" onclick="document.getElementById('tt-location-modal').classList.add('open')" title="Set Delivery Location">
+                    <span>🏠 {{ delivery_city }}</span>
+                </button>
+            </div>
+
+            <!-- Live AJAX Search Bar with "Search All India" toggle (Sections 23, 87) -->
+            <div class="tt-search-wrap">
+                <span class="tt-search-icon">🔍</span>
+                <input type="text" id="tt-live-search-input" class="tt-search-input" placeholder="Search Biryani, Meen Curry, Hotels, under ₹150..." autocomplete="off">
+                <div id="tt-live-search-dropdown" class="tt-search-dropdown"></div>
+            </div>
+
+            <!-- Navigation Links & Role Dashboards -->
+            <nav class="tt-nav-links">
+                <a href="/explore/" class="tt-nav-link">🗺️ Explore & Map</a>
+                <a href="/partner/" class="tt-nav-partner-cta">₹0 Join Partner</a>
+
+                {% if user.is_authenticated %}
+                    {% if user_role == 'ADMIN' or user.is_superuser %}
+                        <a href="/dashboard/admin/" class="tt-nav-link">🛡️ Admin</a>
+                    {% endif %}
+                    <a href="/dashboard/business/" class="tt-nav-link">🏪 Store Panel</a>
+                    <a href="/dashboard/delivery/" class="tt-nav-link">🚴 Rider</a>
+                    <a href="/wishlist/" class="tt-nav-link" title="My Favorites">❤️</a>
+                    <a href="/accounts/profile/" class="tt-nav-link">👤 {{ user.first_name|default:user.username }} ({{ user_tasty_points }}★)</a>
+                {% else %}
+                    <a href="/accounts/login/" class="tt-nav-link">🔑 Sign In / Demo</a>
+                {% endif %}
+
+                <button type="button" id="tt-dark-toggle" class="tt-pill-btn" style="padding:0.38rem 0.65rem;" title="Toggle Dark/Light Mode">🌙</button>
+
+                <a href="/cart/" id="tt-nav-cart-btn" class="tt-pill-btn" style="background:rgba(0,0,0,0.24);">
+                    🛒 <span class="tt-cart-badge js-cart-count">{{ global_cart_count }}</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Cross-Region Delivery Notice (Section 94: Separate Explore Region from Delivery Location) -->
+    {% if cross_region_warning %}
+    <div class="tt-cross-region-banner">
+        <span>🌏 <strong>Explore Region:</strong> {{ current_region.name }} {{ current_region.emoji_flag }} &nbsp;|&nbsp; <strong>Delivery Location:</strong> {{ delivery_area }}, {{ delivery_city }} ({{ delivery_state }})</span>
+        <span style="opacity:0.85;">Note: Inter-state live delivery depends on local kitchen availability in {{ delivery_city }}.</span>
+        <button type="button" onclick="document.getElementById('tt-location-modal').classList.add('open')" style="background:#664D03; color:#fff; border:none; border-radius:6px; padding:0.2rem 0.6rem; font-size:0.76rem; cursor:pointer;">Update Delivery City</button>
+    </div>
+    {% endif %}
+
+    <!-- Django Flash Messages -->
+    {% if messages %}
+    <div style="max-width:1360px; margin:0.85rem auto 0; padding:0 1.75rem; position:relative; z-index:20;">
+        {% for message in messages %}
+        <div style="background:var(--surface-card); border-left:5px solid var(--region-primary); padding:0.8rem 1.2rem; border-radius:10px; box-shadow:var(--shadow-soft); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; font-weight:600;">
+            <span>{{ message }}</span>
+            <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-size:1rem; color:var(--text-muted);">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Page Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Region Selector Modal ("Where are you craving from?" - Opened via Navbar Region Button) -->
+    <div id="tt-region-modal" class="tt-modal-backdrop">
+        <div class="tt-modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+                <div>
+                    <span style="font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--region-primary);">TASTY TAP REGIONS</span>
+                    <h2 style="font-family:var(--font-display); font-size:1.85rem; margin-top:0.2rem;">Where are you craving from?</h2>
+                    <p style="font-size:0.9rem; color:var(--text-muted);">Choose an Indian food region to transform the entire Tasty Tap experience — dishes, local hotels, themes & AI recommendations.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('tt-region-modal').classList.remove('open')" style="background:var(--region-bg); border:1px solid var(--border-soft); width:36px; height:36px; border-radius:50%; font-size:1rem; cursor:pointer;">✕</button>
+            </div>
+
+            <div style="margin-top:0.9rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button type="button" class="tt-filter-chip {% if is_all_india %}active{% endif %}" onclick="selectRegionWithTransition('all-india', 'All India', '🇮🇳', '{{ current_region.name|default:'' }}')">
+                    🇮🇳 Explore All India Marketplace
+                </button>
+            </div>
+
+            <div class="tt-region-cards-grid">
+                {% for reg in all_regions %}
+                <div class="tt-region-choice-card" onclick="selectRegionWithTransition('{{ reg.slug }}', '{{ reg.name }}', '{{ reg.emoji_flag }}', '{{ current_region.name|default:'' }}')">
+                    <div style="height:115px; position:relative; overflow:hidden;">
+                        <img src="{{ reg.card_image_url }}" alt="{{ reg.name }}" style="width:100%; height:100%; object-fit:cover;">
+                        <span style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.68); color:#fff; padding:0.2rem 0.55rem; border-radius:99px; font-size:0.75rem; font-weight:700;">
+                            {{ reg.emoji_flag }} {{ reg.name }}
+                        </span>
+                    </div>
+                    <div style="padding:0.85rem; display:flex; flex-direction:column; flex:1;">
+                        <div style="font-family:var(--font-display); font-weight:700; font-size:1.05rem; margin-bottom:0.2rem;">{{ reg.name }}</div>
+                        <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:0.5rem; flex:1;">{{ reg.tagline }}</div>
+                        <div style="font-size:0.72rem; color:var(--region-primary); font-weight:700; margin-bottom:0.6rem;">
+                            Popular: {{ reg.popular_dishes_preview|truncatechars:62 }}
+                        </div>
+                        <button type="button" class="btn-add-food" style="width:100%; justify-content:center;">Explore {{ reg.name }} →</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Vendor Cart Conflict Modal (Section 9) -->
+    <div id="tt-conflict-modal" class="tt-modal-backdrop">
+        <div class="tt-modal-box" style="max-width:480px; text-align:center;">
+            <div style="font-size:2.6rem; margin-bottom:0.5rem;">🏪 ↔️ 🍲</div>
+            <h3 style="font-family:var(--font-display); font-size:1.45rem; margin-bottom:0.6rem;">You're ordering from another business.</h3>
+            <p id="tt-conflict-message" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.4rem;">
+                Food from different businesses will be placed in separate orders.
+            </p>
+            <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+                <button type="button" class="btn-add-food" style="padding:0.65rem 1.2rem;" onclick="confirmSeparateOrder()">Create Separate Order</button>
+                <button type="button" class="tt-filter-chip" onclick="closeConflictModal()">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Food Customization Modal (Section 36) -->
+    <div id="tt-customize-modal" class="tt-modal-backdrop">
+        <div class="tt-modal-box" style="max-width:500px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 id="tt-cust-title" style="font-family:var(--font-display); font-size:1.35rem;">Customize Dish</h3>
+                <button type="button" onclick="closeCustomizeModal()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <div style="font-weight:700; font-size:0.86rem; margin-bottom:0.45rem;">Choose Portion Size</div>
+                <div style="display:flex; gap:0.75rem;">
+                    <label style="flex:1; border:1px solid var(--border-soft); padding:0.6rem; border-radius:10px; cursor:pointer; font-size:0.85rem;">
+                        <input type="radio" name="cust_size" value="Regular" data-price="0" checked onchange="recalcCustomizePrice()"> Regular (+₹0)
+                    </label>
+                    <label style="flex:1; border:1px solid var(--border-soft); padding:0.6rem; border-radius:10px; cursor:pointer; font-size:0.85rem;">
+                        <input type="radio" name="cust_size" value="Large" data-price="40" onchange="recalcCustomizePrice()"> Large (+₹40)
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <div style="font-weight:700; font-size:0.86rem; margin-bottom:0.45rem;">Spice Level</div>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.45rem; font-size:0.8rem;">
+                    <label style="border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; text-align:center; cursor:pointer;">
+                        <input type="radio" name="cust_spice" value="Mild"> Mild
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; text-align:center; cursor:pointer;">
+                        <input type="radio" name="cust_spice" value="Medium" checked> Medium
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; text-align:center; cursor:pointer;">
+                        <input type="radio" name="cust_spice" value="Hot"> Hot 🌶️
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; text-align:center; cursor:pointer;">
+                        <input type="radio" name="cust_spice" value="Extreme"> Extreme 🔥
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-bottom:1.25rem;">
+                <div style="font-weight:700; font-size:0.86rem; margin-bottom:0.45rem;">Optional Add-ons</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.83rem;">
+                    <label style="border:1px solid var(--border-soft); padding:0.5rem; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" name="cust_addon" value="Cheese" data-price="30" onchange="recalcCustomizePrice()"> Extra Cheese (+₹30)
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.5rem; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" name="cust_addon" value="Extra Patty/Portion" data-price="60" onchange="recalcCustomizePrice()"> Extra Portion (+₹60)
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.5rem; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" name="cust_addon" value="Jalapeno / Pickles" data-price="20" onchange="recalcCustomizePrice()"> Jalapeno / Pickle (+₹20)
+                    </label>
+                    <label style="border:1px solid var(--border-soft); padding:0.5rem; border-radius:8px; cursor:pointer;">
+                        <input type="checkbox" name="cust_addon" value="Pure Ghee Roast" data-price="15" onchange="recalcCustomizePrice()"> Pure Ghee (+₹15)
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-top:0.85rem; border-top:1px solid var(--border-soft);">
+                <div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Updated Item Total</div>
+                    <div id="tt-cust-live-price" style="font-size:1.3rem; font-weight:800; color:var(--region-primary);">₹0</div>
+                </div>
+                <button type="button" class="btn-add-food" style="padding:0.65rem 1.4rem; font-size:0.9rem;" onclick="submitCustomizedFood()">Add Customized Item +</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Location Selector Modal (Section 24 & 94) -->
+    <div id="tt-location-modal" class="tt-modal-backdrop">
+        <div class="tt-modal-box" style="max-width:480px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+                <h3 style="font-family:var(--font-display); font-size:1.35rem;">Select Delivery Location</h3>
+                <button type="button" onclick="document.getElementById('tt-location-modal').classList.remove('open')" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+            </div>
+            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+                Your delivery address is separate from your selected Food Region so you can explore any Indian state while keeping accurate local delivery estimates.
+            </p>
+            <form method="post" action="/location/update/">
+                {% csrf_token %}
+                <div style="display:flex; gap:0.5rem; margin-bottom:0.85rem;">
+                    {% for lbl in "Current Location,Home,Work,Other"|make_list %}{% endfor %}
+                    <label style="flex:1; text-align:center; border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; font-size:0.8rem; cursor:pointer;">
+                        <input type="radio" name="label" value="Current Location" checked> 📍 Current
+                    </label>
+                    <label style="flex:1; text-align:center; border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; font-size:0.8rem; cursor:pointer;">
+                        <input type="radio" name="label" value="Home"> 🏠 Home
+                    </label>
+                    <label style="flex:1; text-align:center; border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; font-size:0.8rem; cursor:pointer;">
+                        <input type="radio" name="label" value="Work"> 💼 Work
+                    </label>
+                    <label style="flex:1; text-align:center; border:1px solid var(--border-soft); padding:0.45rem; border-radius:8px; font-size:0.8rem; cursor:pointer;">
+                        <input type="radio" name="label" value="Other"> 📌 Other
+                    </label>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700;">Area / Locality</label>
+                        <input type="text" name="area" value="{{ delivery_area }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700;">City</label>
+                        <input type="text" name="city" value="{{ delivery_city }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                    </div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.78rem; font-weight:700;">State</label>
+                    <input type="text" name="state" value="{{ delivery_state }}" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:4px;" required>
+                </div>
+                <button type="submit" class="btn-qcart-order">Save Delivery Location</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Floating TAP AI Assistant (Sections 21 & 86) -->
+    <button type="button" class="tt-tap-ai-fab" onclick="toggleTapAIDrawer()">
+        <span>🤖 TAP AI</span>
+        <span style="font-size:0.72rem; background:rgba(255,255,255,0.22); padding:0.12rem 0.45rem; border-radius:99px;">{{ current_region.code|default:"IN" }}</span>
+    </button>
+
+    <div id="tt-tap-ai-drawer" class="tt-tap-ai-drawer">
+        <div style="background:var(--region-primary); color:#fff; padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:800; font-size:0.95rem;">🤖 TAP AI Food Concierge</div>
+                <div style="font-size:0.72rem; opacity:0.9;">Region-aware assistant • {{ current_region.name|default:"All India" }}</div>
+            </div>
+            <button type="button" onclick="toggleTapAIDrawer()" style="background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer;">✕</button>
+        </div>
+
+        <div id="tt-tap-ai-messages" style="flex:1; padding:0.85rem; overflow-y:auto; display:flex; flex-direction:column; gap:0.65rem;">
+            <div style="background:var(--region-bg); padding:0.7rem 0.85rem; border-radius:12px; font-size:0.82rem; border:1px solid var(--border-soft);">
+                👋 Namaskara! I'm <strong>TAP AI</strong>. Ask me what to eat in <strong>{{ current_region.name|default:"India" }}</strong>, or tap a quick question below:
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('What should I eat?')">What should I eat?</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('Find food under ₹200.')">Under ₹200</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('Show nearby vegetarian food.')">Pure Veg</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('I want something spicy.')">Something Spicy 🌶️</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('Find a small local hotel.')">Small Local Hotel</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('Recommend dinner for 2 people.')">Dinner for 2</button>
+                <button type="button" class="tt-filter-chip" style="font-size:0.72rem; padding:0.3rem 0.6rem;" onclick="sendTapAIQuery('I want a healthy meal.')">Healthy Meal</button>
+            </div>
+        </div>
+
+        <form onsubmit="event.preventDefault(); sendTapAIQuery();" style="padding:0.65rem; border-top:1px solid var(--border-soft); display:flex; gap:0.45rem;">
+            <input type="text" id="tt-tap-ai-input" placeholder="Ask TAP AI anything..." style="flex:1; padding:0.5rem 0.75rem; border-radius:99px; border:1px solid var(--border-soft); font-size:0.84rem;">
+            <button type="submit" class="btn-add-food" style="border-radius:99px;">Send</button>
+        </form>
+    </div>
+
+    <!-- Mobile Bottom Navigation (Section 57) -->
+    <nav class="tt-mobile-bottom-nav">
+        <a href="/" class="tt-mobile-nav-item {% if request.path == '/' %}active{% endif %}">
+            <span>🏠</span><span>Home</span>
+        </a>
+        <a href="/explore/" class="tt-mobile-nav-item {% if '/explore/' in request.path %}active{% endif %}">
+            <span>🧭</span><span>Explore</span>
+        </a>
+        <a href="/orders/TT1024/track/" class="tt-mobile-nav-item {% if '/orders/' in request.path %}active{% endif %}">
+            <span>🚴</span><span>Orders</span>
+        </a>
+        <a href="/cart/" class="tt-mobile-nav-item {% if '/cart/' in request.path %}active{% endif %}">
+            <span>🛒 (<span class="js-cart-count">{{ global_cart_count }}</span>)</span><span>Cart</span>
+        </a>
+        <a href="/accounts/profile/" class="tt-mobile-nav-item {% if '/accounts/' in request.path %}active{% endif %}">
+            <span>👤</span><span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="tt-footer">
+        <div class="tt-footer-grid">
+            <div>
+                <div style="font-family:var(--font-display); font-size:1.5rem; font-weight:700; color:#FF4522; margin-bottom:0.5rem;">🍽️ TASTY TAP</div>
+                <p style="font-size:0.85rem; opacity:0.85; margin-bottom:0.85rem;">
+                    "Tap. Taste. Delivered." — India's AI-Powered Multi-Vendor Local Food Marketplace & Regional Culinary Discovery Platform.
+                </p>
+                <div style="font-size:0.78rem; color:#FF9F1C;">Every region has a story. Every business has a taste. Every craving is one TAP away.</div>
+            </div>
+            <div>
+                <div style="font-weight:700; margin-bottom:0.65rem; color:#FFFFFF;">Tasty Tap Regions</div>
+                <div style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.83rem; opacity:0.85;">
+                    <a href="/?region=karnataka">🇮🇳 Karnataka (Udupi & Mangaluru)</a>
+                    <a href="/?region=kerala">🌴 Kerala (Malabar & Backwaters)</a>
+                    <a href="/?region=goa">🌿 Goa (Coastal Curries & Konkan)</a>
+                    <a href="/?region=tamil-nadu">🌶️ Tamil Nadu (Chettinad & Tiffin)</a>
+                    <a href="/?region=telangana">🍚 Telangana & Andhra Pradesh</a>
+                </div>
+            </div>
+            <div>
+                <div style="font-weight:700; margin-bottom:0.65rem; color:#FFFFFF;">For Food Businesses</div>
+                <div style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.83rem; opacity:0.85;">
+                    <a href="/partner/">Join Tasty Tap (₹0 Joining Cost)</a>
+                    <a href="/partner/register/">Register Digital Food Store</a>
+                    <a href="/dashboard/business/">Business Owner Dashboard</a>
+                    <a href="/dashboard/delivery/">Delivery Partner Portal</a>
+                    <a href="/dashboard/admin/">Admin Marketplace Control</a>
+                </div>
+            </div>
+            <div>
+                <div style="font-weight:700; margin-bottom:0.65rem; color:#FFFFFF;">Quick Demo Access</div>
+                <div style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.83rem; opacity:0.85;">
+                    <a href="/orders/TT1024/track/">Live Order Tracker (#TT1024)</a>
+                    <a href="/orders/TT1024/invoice/">Download Sample PDF Invoice</a>
+                    <a href="/store/tasty-bites/">Tasty Bites Storefront</a>
+                    <a href="/store/samudra-ras-coastal/">Samudra Ras Coastal Store</a>
+                    <a href="/api/foods/">REST API Explorer (/api/foods/)</a>
+                </div>
+            </div>
+            <div>
+                <div style="font-weight:700; margin-bottom:0.65rem; color:#FFFFFF;">Author & Contact</div>
+                <div style="display:flex; flex-direction:column; gap:0.42rem; font-size:0.83rem; opacity:0.9;">
+                    <div>👤 <strong>Author:</strong> Gowrav H L</div>
+                    <a href="https://github.com/gowraw11" target="_blank" rel="noopener noreferrer" style="color:#FF9F1C; font-weight:600;">
+                        💻 GitHub: @gowraw11
+                    </a>
+                    <a href="mailto:gowravhadikallu@gmail.com">
+                        ✉️ gowravhadikallu@gmail.com
+                    </a>
+                    <a href="tel:+918431939226">
+                        📞 +91 8431939226
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright & Author Attribution Bar -->
+        <div style="max-width:1360px; margin:2.25rem auto 0; padding-top:1.35rem; border-top:1px solid rgba(255,255,255,0.12); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.85rem; font-size:0.82rem; color:#CBD5E1;">
+            <div>
+                &copy; {% now "Y" %} <strong>TASTY TAP</strong> — AI-Powered Multi-Vendor Food Marketplace. <strong>All Rights Reserved.</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+                <span>Designed &amp; Developed by <strong style="color:#FFFFFF;">Gowrav H L</strong></span>
+                <span>•</span>
+                <a href="https://github.com/gowraw11" target="_blank" rel="noopener noreferrer" style="color:#FF9F1C; font-weight:700;">GitHub: gowraw11</a>
+                <span>•</span>
+                <a href="mailto:gowravhadikallu@gmail.com" style="color:#CBD5E1;">gowravhadikallu@gmail.com</a>
+                <span>•</span>
+                <a href="tel:+918431939226" style="color:#CBD5E1;">8431939226</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        window.TASTY_TAP_MAPS_API_KEY = "{{ maps_api_key|default:'tt_maps_live_9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c' }}";
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{% static 'js/tasty_tap.js' %}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

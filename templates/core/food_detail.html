@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}{{ food.name }} — Discover the Story Behind Your Food | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:2.25rem; background:var(--surface-card); padding:2rem; border-radius:22px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+        <div>
+            <img src="{{ food.get_image }}" alt="{{ food.name }}" style="width:100%; height:360px; object-fit:cover; border-radius:18px; box-shadow:var(--shadow-soft);">
+        </div>
+
+        <div>
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.65rem;">
+                <span class="tt-filter-chip" style="background:var(--region-primary); color:#fff;">
+                    {{ food.region.emoji_flag|default:"🇮🇳" }} {{ food.region.name|default:"Regional Specialty" }}
+                </span>
+                <span class="tt-filter-chip">{{ food.get_veg_type_display }}</span>
+                <span class="tt-filter-chip">🌶️ {{ food.get_spice_level_display }} Spice</span>
+                <span class="tt-filter-chip">⏱ {{ food.preparation_time }} mins</span>
+            </div>
+
+            <h1 style="font-family:var(--font-display); font-size:2.25rem; margin-bottom:0.35rem;">{{ food.name }}</h1>
+            <a href="/store/{{ food.business.slug }}/" style="font-weight:700; color:var(--region-secondary); font-size:0.95rem; display:inline-block; margin-bottom:0.85rem;">
+                🏪 Prepared by {{ food.business.name }} ({{ food.business.area }}, {{ food.business.city }}) ★ {{ food.business.rating }}
+            </a>
+
+            <p style="font-size:0.98rem; color:var(--text-muted); margin-bottom:1.25rem;">{{ food.description }}</p>
+
+            <!-- Discover the Story Behind Your Food (Section 91) -->
+            <div style="background:var(--region-bg); padding:1.25rem; border-radius:16px; border:1px solid var(--border-soft); margin-bottom:1.4rem;">
+                <div style="font-weight:800; font-size:0.85rem; text-transform:uppercase; color:var(--region-primary); margin-bottom:0.5rem;">
+                    📖 Discover the Story Behind Your Food
+                </div>
+                <div style="font-size:0.86rem; margin-bottom:0.4rem;">
+                    <strong>Regional Origin & Significance:</strong> {{ food.origin_story|default:"Traditional regional recipe passed down across local family kitchens." }}
+                </div>
+                <div style="font-size:0.86rem; margin-bottom:0.4rem;">
+                    <strong>Preparation Style:</strong> {{ food.preparation_style|default:"Freshly prepared to order using authentic spices." }}
+                </div>
+                <div style="font-size:0.86rem; margin-bottom:0.4rem;">
+                    <strong>Key Ingredients:</strong> {{ food.ingredients }}
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-muted);">
+                    <strong>Calories:</strong> ~{{ food.calories }} kcal &nbsp;|&nbsp; <strong>Allergens:</strong> {{ food.allergens }}
+                </div>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding-top:1rem; border-top:1px solid var(--border-soft);">
+                <div>
+                    <span style="font-size:0.78rem; color:var(--text-muted); display:block;">Dish Price</span>
+                    <span style="font-size:2rem; font-weight:800; color:var(--region-primary);">₹{{ food.effective_price|floatformat:0 }}</span>
+                </div>
+                <div style="display:flex; gap:0.75rem;">
+                    <button type="button" class="tt-filter-chip" onclick="openCustomizeModal({{ food.id }}, '{{ food.name|escapejs }}', '{{ food.effective_price }}')">
+                        ⚙️ Customize Size & Add-ons
+                    </button>
+                    <button type="button" class="btn-add-food" style="padding:0.75rem 1.5rem; font-size:0.95rem;" onclick="addToCart({{ food.id }}, 1, 'Regular', '{{ food.get_spice_level_display }}', '', 0, false, this)">
+                        Add to Cart +
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if related_foods %}
+    <section style="margin-top:2.75rem;">
+        <h2 class="tt-section-title" style="margin-bottom:1.1rem;">More Dishes You Might Enjoy</h2>
+        <div class="tt-food-grid">
+            {% for rfood in related_foods %}
+            <article class="tt-food-card">
+                <div class="tt-food-img-wrap">
+                    <a href="/food/{{ rfood.slug }}/">
+                        <img src="{{ rfood.get_image }}" alt="{{ rfood.name }}" class="tt-food-img">
+                    </a>
+                </div>
+                <div class="tt-food-body">
+                    <a href="/food/{{ rfood.slug }}/" class="tt-food-title">{{ rfood.name }}</a>
+                    <p class="tt-food-desc">{{ rfood.description }}</p>
+                    <div class="tt-food-footer">
+                        <span class="tt-food-price">₹{{ rfood.effective_price|floatformat:0 }}</span>
+                        <button type="button" class="btn-add-food" onclick="addToCart({{ rfood.id }}, 1)">Add +</button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}My Favorites & Wishlist ❤️ | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:2rem;">
+    <div class="tt-section-header">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:#DC2626; text-transform:uppercase;">❤️ SAVED COLLECTION</span>
+            <h1 class="tt-section-title">My Favorites</h1>
+            <p class="tt-section-sub">Your saved regional dishes and favorite local food businesses.</p>
+        </div>
+    </div>
+
+    <h2 style="font-family:var(--font-display); font-size:1.35rem; margin:1.25rem 0 0.9rem;">Saved Dishes ({{ saved_foods|length }})</h2>
+    <div class="tt-food-grid" style="margin-bottom:2.5rem;">
+        {% for food in saved_foods %}
+        <article class="tt-food-card">
+            <div class="tt-food-img-wrap">
+                <a href="/food/{{ food.slug }}/">
+                    <img src="{{ food.get_image }}" alt="{{ food.name }}" class="tt-food-img">
+                </a>
+                <button type="button" class="tt-wishlist-btn saved" onclick="toggleWishlistItem('food', {{ food.id }}, this); this.closest('.tt-food-card').remove();">♥</button>
+            </div>
+            <div class="tt-food-body">
+                <a href="/food/{{ food.slug }}/" class="tt-food-title">{{ food.name }}</a>
+                <p class="tt-food-desc">{{ food.description }}</p>
+                <div class="tt-food-footer">
+                    <span class="tt-food-price">₹{{ food.effective_price|floatformat:0 }}</span>
+                    <button type="button" class="btn-add-food" onclick="addToCart({{ food.id }}, 1)">Add +</button>
+                </div>
+            </div>
+        </article>
+        {% empty %}
+        <p style="color:var(--text-muted); font-size:0.9rem;">Tap the ♡ icon on any dish to save it here.</p>
+        {% endfor %}
+    </div>
+
+    <h2 style="font-family:var(--font-display); font-size:1.35rem; margin:1.25rem 0 0.9rem;">Saved Local Businesses ({{ saved_businesses|length }})</h2>
+    <div class="tt-business-grid">
+        {% for biz in saved_businesses %}
+        <article class="tt-business-card">
+            <div class="tt-biz-cover-wrap">
+                <a href="/store/{{ biz.slug }}/">
+                    <img src="{{ biz.profile.get_cover }}" alt="{{ biz.name }}" class="tt-biz-cover">
+                </a>
+            </div>
+            <div class="tt-biz-body">
+                <div class="tt-biz-title-row">
+                    <a href="/store/{{ biz.slug }}/" class="tt-biz-name">{{ biz.name }}</a>
+                    <span class="tt-biz-rating-pill">★ {{ biz.rating }}</span>
+                </div>
+                <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">{{ biz.cuisine }} • {{ biz.city }}</div>
+                <a href="/store/{{ biz.slug }}/" class="btn-add-food" style="justify-content:center;">View Store →</a>
+            </div>
+        </article>
+        {% empty %}
+        <p style="color:var(--text-muted); font-size:0.9rem;">Tap the ♡ icon on any business card to save it here.</p>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

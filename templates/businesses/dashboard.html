@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% block title %}Business Owner Dashboard — {{ business.name }} | TASTY TAP{% endblock %}
+
+{% block content %}
+<main class="tt-main-container" style="padding-top:1.75rem;">
+    <!-- Top Header & Store Switcher -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
+        <div>
+            <span style="font-size:0.75rem; font-weight:800; color:var(--region-primary); text-transform:uppercase;">MULTI-TENANT BUSINESS PARTNER PORTAL</span>
+            <h1 class="tt-section-title">{{ time_greeting }}, {{ business.name }} 👋</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap;">
+            {% if owned_businesses|length > 1 %}
+            <form method="get" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <select name="business_id" onchange="this.form.submit()" style="padding:0.5rem 0.85rem; border-radius:99px; border:1px solid var(--border-soft); font-weight:700; font-size:0.84rem;">
+                    {% for b in owned_businesses %}
+                    <option value="{{ b.id }}" {% if b.id == business.id %}selected{% endif %}>🏪 {{ b.name }} ({{ b.get_status_display }})</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+            <a href="/store/{{ business.slug }}/" class="btn-coastal-teal" style="padding:0.5rem 1rem; font-size:0.84rem;">View Live Storefront ↗</a>
+            <a href="/partner/register/" class="tt-filter-chip">+ Register Another Store (₹0)</a>
+        </div>
+    </div>
+
+    <!-- Application Status Banner (Section 46) -->
+    <div style="background:var(--surface-card); padding:1rem 1.4rem; border-radius:14px; border:1px solid var(--border-soft); margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+            <strong>Application Status:</strong>
+            {% if business.status == 'APPROVED' %}
+                <span style="color:#15803D; font-weight:800; margin-left:0.4rem;">🟢 Approved — Congratulations! Your Tasty Tap store is live.</span>
+            {% elif business.status == 'PENDING' %}
+                <span style="color:#B45309; font-weight:800; margin-left:0.4rem;">🟡 Pending Review — Submitted for Admin verification.</span>
+            {% elif business.status == 'UNDER_REVIEW' %}
+                <span style="color:#1D4ED8; font-weight:800; margin-left:0.4rem;">🔵 Under Review — Admin is reviewing your store details.</span>
+            {% else %}
+                <span style="color:#DC2626; font-weight:800; margin-left:0.4rem;">🔴 {{ business.get_status_display }}</span>
+            {% endif %}
+        </div>
+        <span style="font-size:0.8rem; color:var(--text-muted);">Plan: <strong>{{ business.get_subscription_plan_display }}</strong></span>
+    </div>
+
+    <!-- Store Onboarding Checklist (Section 48) -->
+    <div style="background:var(--surface-card); padding:1.25rem 1.5rem; border-radius:16px; border:1px solid var(--border-soft); margin-bottom:1.5rem; box-shadow:var(--shadow-soft);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <div style="font-weight:800; font-size:0.95rem;">
+                📋 Complete Your Store — {% if onboarding.is_complete %}<span style="color:#15803D;">Your store is ready! 🎉</span>{% else %}Progress: {{ onboarding.percent }}%{% endif %}
+            </div>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--region-primary);">{{ onboarding.completed }}/{{ onboarding.total }} Steps</span>
+        </div>
+        <div class="tt-progress-track" style="height:8px; margin-bottom:0.85rem;">
+            <div class="tt-progress-fill" style="width:{{ onboarding.percent }}%;"></div>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; font-size:0.8rem;">
+            {% for step in onboarding.steps %}
+            <span style="padding:0.28rem 0.65rem; border-radius:99px; background:{% if step.done %}#DCFCE7; color:#166534{% else %}var(--region-bg); color:var(--text-muted){% endif %}; font-weight:700;">
+                {% if step.done %}✓{% else %}○{% endif %} {{ step.label }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- KPI Metrics Row (Sections 6, 14, 15) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Today's Sales</div>
+            <div style="font-size:1.65rem; font-weight:800; color:var(--region-primary);">₹{{ todays_sales|floatformat:0 }}</div>
+            <div style="font-size:0.73rem; color:#15803D;">Weekly: ₹{{ weekly_revenue|floatformat:0 }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Today's Orders</div>
+            <div style="font-size:1.65rem; font-weight:800;">{{ todays_orders_count }}</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);">Total Orders: {{ total_orders_count }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Pending / Active Orders</div>
+            <div style="font-size:1.65rem; font-weight:800; color:#D97706;">{{ pending_orders_count }}</div>
+            <div style="font-size:0.73rem; color:#15803D;">Completed: {{ completed_orders_count }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Avg Order Value</div>
+            <div style="font-size:1.65rem; font-weight:800;">₹{{ avg_order_value|floatformat:0 }}</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);">Monthly Rev: ₹{{ monthly_revenue|floatformat:0 }}</div>
+        </div>
+        <div style="background:var(--surface-card); padding:1.15rem; border-radius:16px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">Customer Insights</div>
+            <div style="font-size:1.55rem; font-weight:800; color:var(--region-secondary);">{{ returning_customers }} Repeat</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);">{{ new_customers }} New • ★ {{ business.rating }} Rating</div>
+        </div>
+    </div>
+
+    <!-- Chart.js Analytics Row (Sections 6 & 14) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:1.25rem; margin-bottom:2rem;">
+        <div style="background:var(--surface-card); padding:1.35rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.15rem; margin-bottom:0.75rem;">📈 7-Day Revenue & Orders Chart</h3>
+            <canvas id="bizRevenueChart" height="175"></canvas>
+        </div>
+        <div style="background:var(--surface-card); padding:1.35rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.15rem; margin-bottom:0.75rem;">🍲 Popular Products Breakdown</h3>
+            <canvas id="bizPopularChart" height="175"></canvas>
+        </div>
+    </div>
+
+    <!-- Live Order Notifications & Kitchen Queue (Section 16) -->
+    <section style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:2rem;">
+        <h2 style="font-family:var(--font-display); font-size:1.4rem; margin-bottom:1rem;">🔔 Live Incoming Orders & Kitchen Queue</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem;">
+            {% for ord in orders|slice:":6" %}
+            <div style="padding:1rem; border-radius:14px; border:1px solid var(--border-soft); background:var(--region-bg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <strong style="font-size:1rem;">Order #{{ ord.order_number }}</strong>
+                    <span class="tt-badge badge-top-rated">{{ ord.get_status_display }}</span>
+                </div>
+                <div style="font-size:0.84rem; font-weight:700; margin-bottom:0.35rem;">
+                    {% for item in ord.items.all %}
+                        {{ item.food_name }} ×{{ item.quantity }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                    Total: <strong>₹{{ ord.total_amount }}</strong> ({{ ord.get_payment_method_display }}) • Area: {{ ord.delivery_area }}
+                </div>
+                <form method="post" style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                    {% csrf_token %}
+                    <input type="hidden" name="business_id" value="{{ business.id }}">
+                    <input type="hidden" name="action" value="order_status">
+                    <input type="hidden" name="order_id" value="{{ ord.id }}">
+                    {% if ord.status == 'CONFIRMED' %}
+                        <button type="submit" name="new_status" value="ACCEPTED" class="btn-add-food" style="background:#15803D;">✓ Accept</button>
+                        <button type="submit" name="new_status" value="REJECTED" class="btn-add-food" style="background:#DC2626;">✕ Reject</button>
+                    {% elif ord.status == 'ACCEPTED' %}
+                        <button type="submit" name="new_status" value="PREPARING" class="btn-add-food">🔥 Start Preparing</button>
+                    {% elif ord.status == 'PREPARING' %}
+                        <button type="submit" name="new_status" value="READY" class="btn-add-food" style="background:#185C70;">🥡 Mark Food Ready</button>
+                    {% endif %}
+                    <a href="/orders/{{ ord.order_number }}/track/" class="tt-filter-chip" style="font-size:0.76rem;">View Tracker</a>
+                </form>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-muted);">No orders received yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Menu Management Section: Add / Edit / Duplicate / Disable / Delete Food (Sections 7 & 8) -->
+    <section style="background:var(--surface-card); padding:1.6rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft); margin-bottom:2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
+            <div>
+                <h2 style="font-family:var(--font-display); font-size:1.45rem;">🍲 Menu & Product Management ({{ menu_items|length }} Items)</h2>
+                <p style="font-size:0.84rem; color:var(--text-muted);">Independent multi-tenant inventory & pricing for {{ business.name }}.</p>
+            </div>
+            <button type="button" class="btn-add-food" onclick="document.getElementById('add-food-panel').style.display = document.getElementById('add-food-panel').style.display === 'none' ? 'block' : 'none'">
+                + Add New Food Item
+            </button>
+        </div>
+
+        <!-- Add New Food Form -->
+        <form id="add-food-panel" method="post" enctype="multipart/form-data" style="display:none; background:var(--region-bg); padding:1.25rem; border-radius:14px; border:1px solid var(--border-soft); margin-bottom:1.5rem;">
+            {% csrf_token %}
+            <input type="hidden" name="business_id" value="{{ business.id }}">
+            <input type="hidden" name="action" value="add_food">
+            <h4 style="margin-bottom:0.85rem;">Add New Dish to {{ business.name }}</h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Dish Name *</label>
+                    <input type="text" name="name" placeholder="e.g. Ghee Roast Dosa" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Price (₹) *</label>
+                    <input type="number" name="price" value="90" step="1" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);" required>
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Discount Price (₹ Optional)</label>
+                    <input type="number" name="discount_price" placeholder="e.g. 75" step="1" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Category</label>
+                    <select name="category_id" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Veg / Non-Veg</label>
+                    <select name="veg_type" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                        <option value="VEG">Vegetarian</option>
+                        <option value="NON_VEG">Non-Vegetarian</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Spice Level</label>
+                    <select name="spice_level" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                        <option value="MILD">Mild</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HOT">Hot</option>
+                        <option value="EXTREME">Extreme</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Prep Time (Mins)</label>
+                    <input type="number" name="preparation_time" value="18" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Stock Quantity</label>
+                    <input type="number" name="stock_quantity" value="45" style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Description</label>
+                    <input type="text" name="description" placeholder="Authentic flavor description..." style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+                <div>
+                    <label style="font-size:0.76rem; font-weight:700;">Image URL (or Upload File)</label>
+                    <input type="url" name="image_url" placeholder="https://..." style="width:100%; padding:0.55rem; border-radius:8px; border:1px solid var(--border-soft);">
+                </div>
+            </div>
+            <button type="submit" class="btn-add-food">Save Dish to Menu</button>
+        </form>
+
+        <!-- Existing Menu Items Table -->
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                <thead>
+                    <tr style="border-bottom:2px solid var(--border-soft); text-align:left;">
+                        <th style="padding:0.65rem;">Dish</th>
+                        <th style="padding:0.65rem;">Category</th>
+                        <th style="padding:0.65rem;">Price & Stock</th>
+                        <th style="padding:0.65rem;">Status</th>
+                        <th style="padding:0.65rem;">Quick Edit & Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in menu_items %}
+                    <tr style="border-bottom:1px dashed var(--border-soft);">
+                        <td style="padding:0.65rem; display:flex; align-items:center; gap:0.65rem;">
+                            <img src="{{ item.get_image }}" alt="{{ item.name }}" style="width:44px; height:44px; border-radius:8px; object-fit:cover;">
+                            <div>
+                                <strong>{{ item.name }}</strong>
+                                <div style="font-size:0.74rem; color:var(--text-muted);">{{ item.get_veg_type_display }} • {{ item.preparation_time }}m</div>
+                            </div>
+                        </td>
+                        <td style="padding:0.65rem;">{{ item.category.name|default:"Specialty" }}</td>
+                        <td style="padding:0.65rem;">
+                            <form method="post" style="display:flex; align-items:center; gap:0.4rem;">
+                                {% csrf_token %}
+                                <input type="hidden" name="business_id" value="{{ business.id }}">
+                                <input type="hidden" name="action" value="edit_food">
+                                <input type="hidden" name="food_id" value="{{ item.id }}">
+                                <input type="hidden" name="name" value="{{ item.name }}">
+                                ₹<input type="number" name="price" value="{{ item.price|floatformat:0 }}" style="width:62px; padding:0.25rem; border-radius:6px; border:1px solid var(--border-soft);">
+                                Stock:<input type="number" name="stock_quantity" value="{{ item.stock_quantity }}" style="width:52px; padding:0.25rem; border-radius:6px; border:1px solid var(--border-soft);">
+                                <button type="submit" class="tt-filter-chip" style="padding:0.22rem 0.55rem; font-size:0.73rem;">Update</button>
+                            </form>
+                        </td>
+                        <td style="padding:0.65rem;">
+                            {% if item.is_available %}
+                                <span style="color:#15803D; font-weight:700;">● Available</span>
+                            {% else %}
+                                <span style="color:#DC2626; font-weight:700;">○ Disabled</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding:0.65rem;">
+                            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="business_id" value="{{ business.id }}">
+                                    <input type="hidden" name="food_id" value="{{ item.id }}">
+                                    <button type="submit" name="action" value="toggle_food" class="tt-filter-chip" style="padding:0.25rem 0.55rem; font-size:0.73rem;">
+                                        {% if item.is_available %}Disable{% else %}Enable{% endif %}
+                                    </button>
+                                    <button type="submit" name="action" value="duplicate_food" class="tt-filter-chip" style="padding:0.25rem 0.55rem; font-size:0.73rem;">Duplicate</button>
+                                    <button type="submit" name="action" value="delete_food" class="tt-filter-chip" style="padding:0.25rem 0.55rem; font-size:0.73rem; color:#DC2626;">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Promotions, Growth Center & Storefront Customization Grid (Sections 13, 35, 49) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(330px, 1fr)); gap:1.5rem;">
+        <!-- Create Business Promotion -->
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">🎉 Create Promotion / Festival Offer</h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="business_id" value="{{ business.id }}">
+                <input type="hidden" name="action" value="create_offer">
+                <div style="margin-bottom:0.65rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Offer Title</label>
+                    <input type="text" name="title" placeholder="e.g. 20% OFF on Lunch or Buy 2 Get 1" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;" required>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.65rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Promo Type</label>
+                        <select name="promo_type" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                            <option value="LUNCH">Lunch Offer</option>
+                            <option value="DISCOUNT">Percentage Discount</option>
+                            <option value="BOGO">Buy 1 Get 1</option>
+                            <option value="COMBO">Combo Offer</option>
+                            <option value="HAPPY_HOUR">Happy Hour</option>
+                            <option value="FESTIVAL">Festival Offer</option>
+                            <option value="FREE_DELIVERY">Free Delivery</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Coupon Code</label>
+                        <input type="text" name="coupon_code" placeholder="LUNCH20" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.85rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Discount %</label>
+                        <input type="number" name="discount_percentage" value="20" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Festival Tag (Optional)</label>
+                        <input type="text" name="festival_tag" placeholder="Onam / Ugadi / Diwali" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                </div>
+                <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.6rem;">Launch Offer</button>
+            </form>
+        </div>
+
+        <!-- Business Growth Center (Section 49) -->
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">🚀 Business Growth Center</h3>
+            {% for sug in growth_suggestions %}
+            <div style="padding:0.75rem; background:var(--region-bg); border-radius:12px; border:1px solid var(--border-soft); margin-bottom:0.65rem;">
+                <div style="font-weight:700; font-size:0.86rem; color:var(--region-primary);">{{ sug.title }}</div>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">{{ sug.desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Digital Storefront Customization (Section 35) -->
+        <div style="background:var(--surface-card); padding:1.5rem; border-radius:18px; border:1px solid var(--border-soft); box-shadow:var(--shadow-soft);">
+            <h3 style="font-family:var(--font-display); font-size:1.25rem; margin-bottom:0.85rem;">🎨 Customize Digital Storefront</h3>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="business_id" value="{{ business.id }}">
+                <input type="hidden" name="action" value="customize_store">
+                <div style="margin-bottom:0.65rem;">
+                    <label style="font-size:0.76rem; font-weight:700;">Store Description</label>
+                    <textarea name="description" rows="2" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">{{ profile.description }}</textarea>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.85rem;">
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Delivery Fee (₹)</label>
+                        <input type="number" name="delivery_fee" value="{{ business.delivery_fee|floatformat:0 }}" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.76rem; font-weight:700;">Free Delivery Above (₹)</label>
+                        <input type="number" name="free_delivery_threshold" value="{{ business.free_delivery_threshold|floatformat:0 }}" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-soft); margin-top:3px;">
+                    </div>
+                </div>
+                <button type="submit" class="btn-add-food" style="width:100%; justify-content:center; padding:0.6rem;">Save Storefront Settings</button>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const labels = {{ chart_labels_json|safe }};
+    const revData = {{ chart_revenue_json|safe }};
+    const ordData = {{ chart_orders_json|safe }};
+    const popLabels = {{ popular_labels_json|safe }};
+    const popCounts = {{ popular_counts_json|safe }};
+
+    const revCtx = document.getElementById('bizRevenueChart');
+    if (revCtx && typeof Chart !== 'undefined') {
+        new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Daily Revenue (₹)',
+                        data: revData,
+                        borderColor: '#AD4F24',
+                        backgroundColor: 'rgba(173, 79, 36, 0.14)',
+                        fill: true,
+                        tension: 0.35
+                    }
+                ]
+            },
+            options: { responsive: true, plugins: { legend: { display: true } } }
+        });
+    }
+
+    const popCtx = document.getElementById('bizPopularChart');
+    if (popCtx && typeof Chart !== 'undefined') {
+        new Chart(popCtx, {
+            type: 'bar',
+            data: {
+                labels: popLabels,
+                datasets: [{
+                    label: 'Orders Count',
+                    data: popCounts,
+                    backgroundColor: ['#AD4F24', '#185C70', '#E49836', '#2B7A4B', '#9C2B23', '#6B3FA0']
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+});
+</script>
+{% endblock %}
