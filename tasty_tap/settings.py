@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get(
     "django-insecure-tasty-tap-marketplace-secret-key-2026-secure"
 )
 
-DEBUG = os.environ.get("DEBUG", "True").lower() in (
+DEBUG = os.environ.get("DEBUG", "False").lower() in (
     "true",
     "1",
     "yes",
@@ -41,15 +41,11 @@ DEBUG = os.environ.get("DEBUG", "True").lower() in (
 # ALLOWED HOSTS
 # =========================================================
 
-allowed_hosts = os.environ.get(
-    "ALLOWED_HOSTS",
-    "127.0.0.1,localhost,.vercel.app"
-)
-
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in allowed_hosts.split(",")
-    if host.strip()
+    "127.0.0.1",
+    "localhost",
+    ".vercel.app",
+    "tasty-tap-2.onrender.com",
 ]
 
 
@@ -59,14 +55,8 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.vercel.app",
+    "https://tasty-tap-2.onrender.com",
 ]
-
-# If you later use a custom domain, add it here:
-#
-# CSRF_TRUSTED_ORIGINS += [
-#     "https://www.yourdomain.com",
-#     "https://yourdomain.com",
-# ]
 
 
 # =========================================================
@@ -174,12 +164,6 @@ ASGI_APPLICATION = "tasty_tap.asgi.application"
 # =========================================================
 # DATABASE
 # =========================================================
-
-# SQLite for local development.
-#
-# IMPORTANT:
-# Vercel serverless deployments should use PostgreSQL
-# or another external persistent database for production.
 
 DB_ENGINE = os.environ.get(
     "DB_ENGINE",
