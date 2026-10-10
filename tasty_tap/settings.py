@@ -24,16 +24,15 @@ if env_path.exists():
 # SECURITY
 # =========================================================
 
-SECRET_KEY = os.environ.get("SECRET_KEY")
-
-if not SECRET_KEY:
-    SECRET_KEY = (
-        "django-insecure-tasty-tap-marketplace-secret-key-"
-        "2026-change-this-for-production"
-    )
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-tasty-tap-marketplace-secret-key-change-in-production",
+)
 
 DEBUG = os.environ.get("DEBUG", "False").lower() in (
-    "true", "1", "yes"
+    "true",
+    "1",
+    "yes",
 )
 
 
@@ -45,15 +44,13 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     ".vercel.app",
+    "tasty-tap-7.onrender.com",
 ]
 
 render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 
-if render_hostname:
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_hostname)
-
-# Keep this entry if this is your actual Render service hostname.
-ALLOWED_HOSTS.append("tasty-tap-2.onrender.com")
 
 
 # =========================================================
@@ -62,13 +59,13 @@ ALLOWED_HOSTS.append("tasty-tap-2.onrender.com")
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.vercel.app",
-    "https://tasty-tap-2.onrender.com",
+    "https://tasty-tap-7.onrender.com",
 ]
 
 if render_hostname:
-    CSRF_TRUSTED_ORIGINS.append(
-        f"https://{render_hostname}"
-    )
+    render_origin = f"https://{render_hostname}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 
 # =========================================================
@@ -161,7 +158,7 @@ ASGI_APPLICATION = "tasty_tap.asgi.application"
 
 DB_ENGINE = os.environ.get(
     "DB_ENGINE",
-    "django.db.backends.sqlite3"
+    "django.db.backends.sqlite3",
 )
 
 DB_NAME = os.environ.get("DB_NAME", "db.sqlite3")
@@ -221,8 +218,12 @@ USE_TZ = True
 # =========================================================
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 
 # =========================================================
@@ -313,11 +314,12 @@ MAPS_API_KEY = os.environ.get("MAPS_API_KEY", "")
 
 MAPS_PROVIDER = os.environ.get(
     "MAPS_PROVIDER",
-    "tasty_tap_tile_engine"
+    "tasty_tap_tile_engine",
 )
 
+
 # =========================================================
-# PRODUCTION ERROR LOGGING
+# LOGGING
 # =========================================================
 
 LOGGING = {
@@ -345,4 +347,3 @@ LOGGING = {
         },
     },
 }
-
