@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: tasty-tap
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn tasty_tap.wsgi:application
