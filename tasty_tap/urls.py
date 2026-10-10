@@ -52,7 +52,7 @@ from orders.views import (
 from delivery.views import delivery_dashboard_view
 
 urlpatterns = [
-    path('django-admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
 
     # Customer & Regional Discovery Pages
     path('', home_view, name='home'),
